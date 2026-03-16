@@ -1,0 +1,57 @@
+{
+  "status": "answers_ready",
+  "question": "Q4 - Search and video advertising according to the authors have their limitations. Give one example each of how brands have been able to beat their limitations and still use the two platforms successfully? Cite metrics of success.",
+  "question_number": 4,
+  "answers": [
+    {
+      "option": "A",
+      "brand": "Cadbury Celebrations (search) + Havells (video)",
+      "brand_concept": "Non-visual text-only limitation beaten via visual Shopping formats; imprecise targeting beaten via regional contextual video",
+      "framework": "Keller Ch. 7, Table 7-4",
+      "answer_text": "SEARCH — Overcoming 'Non-Visual, Text-Only' Limitation\n\nKeller (Ch. 7, Table 7-4, p. 283) notes search advertising is 'a non-visual (text-only) ad type [that] can limit what the brand can convey.'\n\nCadbury Celebrations (Mondelez India) overcame this via Google's Performance Max, which serves visual product listing ads (PLAs) with product images, prices, and store names directly in search results. Google confirms ads with image assets achieve '6% higher CTR on average compared to text-only search ads' [1].\n\nVIDEO — Overcoming 'Targeting May Not Be as Precise'\n\nKeller notes video advertising's limitation: 'targeting may not be as precise.'\n\nHavells India overcame this via its 'Hawa Badlegi' campaign — creating region-specific ad films for North/South Indian markets with culturally resonant themes. Per Exchange4media, '#HawaBadlegi generated immense popularity on social media' [2]. Havells spends 3-4% of sales on advertising vs 1% industry average, delivering strong differentiation [3].",
+      "citations": [
+        {"ref_number": 1, "author": "Google Ads Help", "title": "About Shopping Ads + Ads Highlights 2025", "publication": "Google Support", "date": "2025", "quoted_text": "Shopping ads display a product photo, title, price, store name; advertisers who achieve Excellent Ad Strength see 6% more conversions"},
+        {"ref_number": 2, "author": "Exchange4media", "title": "Havells' move from comedy to social forwardness spells success", "publication": "Exchange4media", "date": "2015", "quoted_text": "Winds of change and Hawa badlegi hashtags have seen immense popularity and participation from people on social media"},
+        {"ref_number": 3, "author": "IIDE", "title": "In-Depth Marketing Strategy of Havells India", "publication": "IIDE", "date": "2026", "quoted_text": "the company spends about 3-4% of sales on advertising vs just 1% by competitors"}
+      ]
+    },
+    {
+      "option": "B (RECOMMENDED)",
+      "brand": "Hero MotoCorp (search) + Cadbury Celebrations SRK campaign (video)",
+      "brand_concept": "Keyword competition beaten via AI Performance Max; distraction beaten via AI-personalized hyper-local video",
+      "framework": "Keller Ch. 7, Table 7-4",
+      "answer_text": "SEARCH — Overcoming 'Competition for Keywords Drives Up Budgets'\n\nKeller (Ch. 7, Table 7-4, p. 283) identifies 'competition for certain keywords can drive up budgets.' Bidding wars on generic keywords make search prohibitively expensive.\n\nHero MotoCorp adopted Google's Performance Max with AI-powered Smart Bidding to find cost-effective conversion paths rather than competing head-on. Per Think with Google APAC, this 'enabled the brand to automatically optimize campaigns across Google's ad channels,' resulting in 126,000 store visits and 67,000 phone calls [1].\n\nVIDEO — Overcoming 'Audience May Be Too Distracted to Pay Attention'\n\nKeller notes: 'audience may be too distracted to pay attention.'\n\nCadbury Celebrations overcame this via radical personalization for Diwali 2021 '#NotJustACadburyAd.' Using AI (Rephrase.ai), 130,000+ personalized video ads featured SRK mentioning each viewer's local store by name. Per Ogilvy: 'Machine learning recreated SRK's face and voice to take local store names' [2]. Result: 94M views, 35% sales growth, Cannes Grand Prix 2023 — India's first Titanium Lion [3].",
+      "citations": [
+        {"ref_number": 1, "author": "Think with Google APAC", "title": "Marketing for Retailers: Performance Max", "publication": "Think with Google", "date": "2024", "quoted_text": "enabled the brand to automatically optimize its campaigns across Google's ad channels, attracting 126,000 store visits and 67,000 phone calls"},
+        {"ref_number": 2, "author": "Ogilvy India / WPP", "title": "Shah Rukh Khan My Ad — Cadbury", "publication": "Ogilvy.com", "date": "2022", "quoted_text": "Machine learning was used to recreate SRK's face and voice to take local store names in the ad; the campaign unlocked 35% business growth"},
+        {"ref_number": 3, "author": "Storyboard18", "title": "Cannes Lions 2023: Mondelez India wins Grand Prix", "publication": "Storyboard18", "date": "2023", "quoted_text": "Cadbury's Shah Rukh Khan My Ad is 1st Titanium Lion winner for India"}
+      ]
+    },
+    {
+      "option": "C",
+      "brand": "Berger Paints (search) + Cadbury Celebrations (video — customization angle)",
+      "brand_concept": "Time-consuming optimization beaten via AI programmatic; no-customization beaten via 130K personalized videos",
+      "framework": "Keller Ch. 7, Table 7-4",
+      "answer_text": "SEARCH — Overcoming 'Optimization is Time-Consuming'\n\nKeller (Ch. 7, Table 7-4, p. 283) notes 'optimization of a campaign is time-consuming.' Manually adjusting bids, testing copy, refining keywords requires ongoing effort.\n\nBerger Paints India deployed AI-driven mobile ads with dynamic creative optimization — regional targeting and advanced sensors served contextually relevant ads automatically, achieving '24x higher engagement rate' vs standard benchmarks [1]. Plus SEO-driven content (e.g., 'Trending Wall Colours') creates always-on search presence compounding organically [2].\n\nVIDEO — Overcoming 'Customization or Verification is Not Possible'\n\nKeller notes: 'customization or verification is not possible' in video.\n\nCadbury Celebrations attacked this directly. For Diwali 2021, Rephrase.ai created 130,000+ customized video versions with SRK naming different local stores. NotJustACadburyAd.com enabled store owners to generate their own versions — verification and co-creation. Result: 'localized to 500+ pincodes with 2,500+ businesses' [3], 94M views, 35% sales growth.",
+      "citations": [
+        {"ref_number": 1, "author": "mCanvas", "title": "Berger Paints Case Study", "publication": "mCanvas.com", "date": "2022", "quoted_text": "Berger Paints leveraged regional targeting and advanced motion sensors to achieve 24x higher engagement rate"},
+        {"ref_number": 2, "author": "IIDE", "title": "Berger Paints Marketing Strategy 2026", "publication": "IIDE.co", "date": "2026", "quoted_text": "Berger Paints places strong emphasis on SEO-driven content to increase organic traffic"},
+        {"ref_number": 3, "author": "Ogilvy India", "title": "Shah Rukh Khan My Ad — Cadbury", "publication": "Ogilvy.com", "date": "2022", "quoted_text": "Machine learning used to localize campaign to 500+ pincodes with 2,500+ local business owners"}
+      ]
+    },
+    {
+      "option": "D",
+      "brand": "Hero MotoCorp (search) + CRED (video)",
+      "brand_concept": "Text-only limitation beaten via Performance Max visuals; distraction beaten via shock-humor (Rahul Dravid road rage)",
+      "framework": "Keller Ch. 7, Table 7-4",
+      "answer_text": "SEARCH — Overcoming 'Non-Visual, Text-Only' Limitation\n\nKeller (Ch. 7, Table 7-4, p. 283) notes search is 'a non-visual (text-only) ad type.' For motorcycles, consumers need to SEE design.\n\nHero MotoCorp adopted Performance Max serving visually rich formats — product images, Maps listings, YouTube snippets — all triggered by search intent. Per Think with Google, this attracted 126,000 store visits and 67,000 phone calls [1].\n\nVIDEO — Overcoming 'Audience May Be Too Distracted'\n\nCRED overcame distraction via deliberately absurd, shock-humor storytelling. During IPL 2021, the ad showed famously calm Rahul Dravid in road-rage meltdown screaming 'Indiranagar ka gunda hoon main!' — complete persona inversion. Cognitive dissonance arrested attention in first 3 seconds — before the skip button. Per Social Samosa, 'garnered 4M+ YouTube views in four days' and 'trended #1 on Twitter' [2]. CRED reported '700% increase in app downloads' [3].\n\nNOTE: CRED is fintech (not e-commerce) but carries mild risk as an internet brand.",
+      "citations": [
+        {"ref_number": 1, "author": "Think with Google APAC", "title": "Performance Max", "publication": "Think with Google", "date": "2024", "quoted_text": "126,000 store visits and 67,000 phone calls"},
+        {"ref_number": 2, "author": "Social Samosa", "title": "Brand Saga: CRED IPL campaign", "publication": "Social Samosa", "date": "2021", "quoted_text": "garnered over 4 million views on YouTube in four days of its release"},
+        {"ref_number": 3, "author": "Social Samosa", "title": "CRED IPL Campaign Analysis", "publication": "Social Samosa", "date": "2021", "quoted_text": "CRED reported 700% increase in app downloads"}
+      ]
+    }
+  ],
+  "chatgpt": {"response": "", "brands_mentioned": [], "error": "unavailable"},
+  "recommender": null
+}

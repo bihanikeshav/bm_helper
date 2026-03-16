@@ -1191,7 +1191,8 @@
             cites.forEach(function(c) {
               if (!c || typeof c !== 'object') return;
               var key = (c.url || c.title || '').toLowerCase();
-              if (key && !seen[key] && c.url && !c.url.startsWith('knowledge_base')) {
+              var displayKey = key || (c.title || '') + (c.author || '') + idx;
+              if (displayKey && !seen[displayKey]) {
                 seen[key] = true;
                 brandBank.push({
                   brand: brandName,
