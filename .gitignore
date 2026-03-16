@@ -10,5 +10,4 @@ results.json.tmp
 .DS_Store
 Thumbs.db
 
-# PDFs are large - use Git LFS or share separately
-*.pdf
+# PDFs tracked via Git LFS (see .gitattributes)
