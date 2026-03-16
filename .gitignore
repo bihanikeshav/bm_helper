@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Runtime temp files
+results.json.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PDFs are large - use Git LFS or share separately
+*.pdf

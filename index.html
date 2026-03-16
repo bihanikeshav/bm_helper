@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BM Exam Helper</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f5f7;
+    --white: #ffffff;
+    --header-bg: #1a1d23;
+    --header-text: #e8eaed;
+    --tab-active: #3b82f6;
+    --tab-hover: #2d3748;
+    --border: #d1d5db;
+    --muted: #6b7280;
+    --text: #111827;
+    --subtext: #374151;
+
+    --best-bg: #d1fae5;
+    --best-border: #10b981;
+    --best-badge: #065f46;
+    --best-badge-bg: #10b981;
+
+    --good-bg: #dbeafe;
+    --good-border: #3b82f6;
+    --good-badge: #1e3a8a;
+    --good-badge-bg: #3b82f6;
+
+    --risky-bg: #fff7ed;
+    --risky-border: #f97316;
+    --risky-badge: #7c2d12;
+    --risky-badge-bg: #f97316;
+
+    --danger-bg: #fee2e2;
+    --danger-border: #ef4444;
+
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 0 20px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-height: 52px;
+    flex-shrink: 0;
+    border-bottom: 2px solid #2d3748;
+  }
+
+  #header-title {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    padding-right: 24px;
+    border-right: 1px solid #374151;
+    color: #f9fafb;
+    white-space: nowrap;
+  }
+
+  #header-title span {
+    color: #60a5fa;
+    margin-right: 6px;
+    font-size: 20px;
+  }
+
+  #tabs {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    flex: 1;
+    padding-left: 8px;
+  }
+
+  #tabs::-webkit-scrollbar { height: 3px; }
+  #tabs::-webkit-scrollbar-thumb { background: #374151; }
+
+  .tab {
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #9ca3af;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-decoration: none;
+    border-top: 3px solid transparent;
+  }
+
+  .tab:hover {
+    color: var(--header-text);
+    background: var(--tab-hover);
+  }
+
+  .tab.active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+  }
+
+  #refresh-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px;
+    font-size: 11px;
+    color: #6b7280;
+    flex-shrink: 0;
+  }
+
+  #refresh-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4b5563;
+    transition: background 0.3s;
+  }
+
+  #refresh-dot.pulse {
+    background: #10b981;
+    animation: pulse-dot 0.6s ease-out;
+  }
+
+  @keyframes pulse-dot {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.6); opacity: 0.7; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ── QUESTION BAR ── */
+  #question-bar {
+    background: var(--white);
+    border-bottom: 2px solid var(--border);
+    padding: 12px 24px;
+    flex-shrink: 0;
+    min-height: 52px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  #question-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    white-space: nowrap;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  #question-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  #question-text.placeholder {
+    color: var(--muted);
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* ── MAIN LAYOUT ── */
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* ── LEFT PANEL ── */
+  #left-panel {
+    width: 72%;
+    display: flex;
+    flex-direction: column;
+    border-right: 2px solid var(--border);
+    overflow: hidden;
+  }
+
+  #left-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+  }
+
+  #status-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+  }
+
+  #status-badge.generating { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+  #status-badge.answers_ready { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+  #status-badge.complete { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+
+  #answers-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+
+  #answers-area::-webkit-scrollbar { width: 6px; }
+  #answers-area::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  /* ── RIGHT PANEL ── */
+  #right-panel {
+    width: 28%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #right-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 20px;
+    flex-shrink: 0;
+  }
+
+  .panel-title.danger { color: #b91c1c; }
+
+  #chatgpt-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  #chatgpt-area::-webkit-scrollbar { width: 6px; }
+  #chatgpt-area::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
+
+  /* ── BOTTOM BAR ── */
+  #bottom-bar {
+    background: var(--white);
+    border-top: 2px solid var(--border);
+    padding: 14px 24px;
+    flex-shrink: 0;
+    min-height: 64px;
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  #verdict-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    white-space: nowrap;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  #verdict-content {
+    flex: 1;
+  }
+
+  #verdict-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  #checks-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .check-item {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+  }
+
+  .check-item.pass { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+  .check-item.fail { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+
+  .check-icon { font-style: normal; font-size: 13px; }
+
+  /* ── SPINNER ── */
+  .spinner-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    gap: 16px;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #e5e7eb;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .spinner-sm {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .spinner-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+  }
+
+  /* ── ANSWER CARDS ── */
+  .answer-card {
+    background: var(--white);
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    box-shadow: var(--shadow);
+    margin-bottom: 14px;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+  }
+
+  .answer-card:hover { box-shadow: var(--shadow-md); }
+
+  .answer-card.rank-BEST { border-color: var(--best-border); }
+  .answer-card.rank-GOOD { border-color: var(--good-border); }
+  .answer-card.rank-RISKY { border-color: var(--risky-border); }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rank-BEST .card-header { background: var(--best-bg); }
+  .rank-GOOD .card-header { background: var(--good-bg); }
+  .rank-RISKY .card-header { background: var(--risky-bg); }
+
+  .rank-badge {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    padding: 3px 10px;
+    border-radius: 5px;
+    color: #fff;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  .rank-BEST .rank-badge { background: var(--best-badge-bg); }
+  .rank-GOOD .rank-badge { background: var(--good-badge-bg); }
+  .rank-RISKY .rank-badge { background: var(--risky-badge-bg); }
+
+  .card-brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .card-framework {
+    font-size: 11px;
+    background: #f3f4f6;
+    color: #4b5563;
+    padding: 3px 9px;
+    border-radius: 5px;
+    border: 1px solid #e5e7eb;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .card-rank-reason {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 8px 16px;
+    background: #f9fafb;
+    border-bottom: 1px solid #f3f4f6;
+    font-style: italic;
+  }
+
+  .card-body {
+    padding: 14px 16px;
+  }
+
+  .answer-text {
+    font-size: 15px;
+    line-height: 1.8;
+    color: #1a1a2e;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: none;
+    padding: 12px;
+    background: #fafbfc;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .answer-text::-webkit-scrollbar { width: 4px; }
+  .answer-text::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+  .issues-list {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .issue-item {
+    font-size: 12px;
+    color: #b45309;
+    background: #fef3c7;
+    border: 1px solid #fcd34d;
+    border-radius: 5px;
+    padding: 4px 10px;
+  }
+
+  /* ── CITATIONS ── */
+  .citations-section {
+    border-top: 1px solid #f3f4f6;
+    padding: 10px 16px 14px;
+    background: #fafafa;
+  }
+
+  .citations-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .citation-item {
+    display: flex;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--white);
+    margin-bottom: 6px;
+  }
+
+  .citation-num {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .citation-body { flex: 1; min-width: 0; }
+
+  .citation-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .citation-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .citation-quote {
+    font-size: 13px;
+    color: #1a1a2e;
+    background: #fff8e1;
+    border-left: 4px solid #f59e0b;
+    padding: 8px 12px;
+    margin-top: 6px;
+    border-radius: 0 4px 4px 0;
+    font-style: italic;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+  .citation-quote::before {
+    content: '\201C';
+    font-size: 18px;
+    color: #f59e0b;
+    margin-right: 2px;
+  }
+  .citation-quote::after {
+    content: '\201D';
+    font-size: 18px;
+    color: #f59e0b;
+    margin-left: 2px;
+  }
+  .citation-url {
+    font-size: 11px;
+    color: #2563eb;
+    margin-top: 4px;
+    word-break: break-all;
+    text-decoration: underline;
+  }
+
+  .citation-status {
+    display: flex;
+    gap: 5px;
+    margin-top: 4px;
+  }
+
+  .cite-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 4px;
+  }
+
+  .cite-tag.ok { background: #d1fae5; color: #065f46; }
+  .cite-tag.warn { background: #fee2e2; color: #991b1b; }
+
+  /* ── CARD ACTIONS ── */
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px 14px;
+    border-top: 1px solid #f3f4f6;
+  }
+
+  .btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  .btn-copy {
+    background: var(--white);
+    color: #374151;
+    border-color: #d1d5db;
+  }
+
+  .btn-copy:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+
+  .btn-copy.copied {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+  }
+
+  .btn-cite {
+    background: var(--white);
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+  }
+
+  .btn-cite:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+  }
+
+  .btn-cite.copied {
+    background: #d1fae5;
+    color: #065f46;
+    border-color: #6ee7b7;
+  }
+
+  /* ── CHATGPT PANEL ── */
+  .chatgpt-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .chatgpt-card-header {
+    padding: 10px 14px;
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #991b1b;
+  }
+
+  .chatgpt-response-text {
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--subtext);
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .chatgpt-response-text::-webkit-scrollbar { width: 4px; }
+  .chatgpt-response-text::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
+
+  .chatgpt-unavailable {
+    padding: 16px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .brands-card {
+    background: var(--white);
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .brands-card-header {
+    padding: 10px 14px;
+    background: #fef2f2;
+    border-bottom: 1px solid #fecaca;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #991b1b;
+  }
+
+  .brands-list {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .brand-avoid-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #b91c1c;
+  }
+
+  .brand-x {
+    font-size: 14px;
+    font-weight: 800;
+    color: #dc2626;
+    flex-shrink: 0;
+  }
+
+  .no-brands {
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+    padding: 8px 14px 12px;
+  }
+
+  /* ── VERDICT SPINNER ── */
+  .verdict-spinner-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* ── WAITING STATE ── */
+  .waiting-msg {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .waiting-msg p {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .waiting-msg small {
+    font-size: 12px;
+    color: #9ca3af;
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1a1d23;
+    color: #f9fafb;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  #toast.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-title"><span>B</span>M Exam Helper</div>
+  <div id="tabs"></div>
+  <div id="refresh-indicator">
+    <div id="refresh-dot"></div>
+    <span id="refresh-time">--:--</span>
+  </div>
+</div>
+
+<!-- QUESTION BAR -->
+<div id="question-bar">
+  <div id="question-label">Q<span id="q-num">?</span></div>
+  <div id="question-text" class="placeholder">Waiting for question...</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+  <!-- LEFT PANEL -->
+  <div id="left-panel">
+    <div id="left-header">
+      <div class="panel-title">YOUR ANSWERS</div>
+      <div id="status-badge">Waiting</div>
+    </div>
+    <div id="answers-area">
+      <div class="waiting-msg">
+        <div class="spinner"></div>
+        <p>Waiting for results...</p>
+        <small>Auto-refreshing every 2 seconds</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
+    <div id="right-header">
+      <div class="panel-title danger">ChatGPT Said (AVOID THESE)</div>
+    </div>
+    <div id="chatgpt-area">
+      <div class="chatgpt-card">
+        <div class="chatgpt-unavailable">Waiting for data...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <div id="verdict-label">VERDICT</div>
+  <div id="verdict-content">
+    <div id="verdict-text" style="color: var(--muted); font-weight:400; font-style:italic;">
+      Waiting for analysis...
+    </div>
+    <div id="checks-row"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+  'use strict';
+
+  // ── STATE ──────────────────────────────────────────────────────────────────
+  let currentData = null;
+  let loadedFile = 'latest';
+
+  // ── TOAST ──────────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // ── COPY ───────────────────────────────────────────────────────────────────
+  function copyText(text, btn, label) {
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      showToast(label + ' copied to clipboard');
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.classList.remove('copied');
+      }, 2000);
+    }).catch(() => {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast(label + ' copied');
+    });
+  }
+
+  function formatCitations(citations) {
+    if (!citations || citations.length === 0) return 'No citations.';
+    return citations.map((c, i) => {
+      const num = c.ref_number || (i + 1);
+      const parts = [];
+      if (c.author) parts.push(c.author);
+      if (c.title) parts.push('"' + c.title + '"');
+      if (c.publication) parts.push(c.publication);
+      if (c.date) parts.push(c.date);
+      if (c.url) parts.push(c.url);
+      return '[' + num + '] ' + parts.join(', ');
+    }).join('\n');
+  }
+
+  // ── ESCAPE HTML ────────────────────────────────────────────────────────────
+  function esc(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── RENDER CITATIONS ───────────────────────────────────────────────────────
+  function renderCitations(citations) {
+    if (!citations || citations.length === 0) return '';
+    const items = citations.map((c, i) => {
+      const num = c.ref_number || (i + 1);
+      const urlOk = c.url_verified !== false;
+      const quoteOk = c.quote_verified !== false;
+      const urlTag = '<span class="cite-tag ' + (urlOk ? 'ok' : 'warn') + '">' +
+        (urlOk ? 'URL OK' : 'URL ?') + '</span>';
+      const quoteTag = '<span class="cite-tag ' + (quoteOk ? 'ok' : 'warn') + '">' +
+        (quoteOk ? 'Quote OK' : 'Quote ?') + '</span>';
+      const quote = c.quoted_text
+        ? '<div class="citation-quote">' + esc(c.quoted_text) + '</div>' : '';
+      const url = c.url
+        ? '<div class="citation-url">' + esc(c.url) + '</div>' : '';
+      const meta = [c.publication, c.date].filter(Boolean).join(' · ');
+      const writeThis = c.quoted_text
+        ? '' : '';
+      return '<div class="citation-item">' +
+        '<div class="citation-num">[' + esc(num) + ']</div>' +
+        '<div class="citation-body">' +
+          '<div class="citation-title">' + esc(c.author ? c.author + ' \u2014 ' : '') + esc(c.title || 'Untitled') + '</div>' +
+          (meta ? '<div class="citation-meta">' + esc(meta) + '</div>' : '') +
+          quote +
+          writeThis +
+          url +
+          '<div class="citation-status">' + urlTag + quoteTag + '</div>' +
+        '</div>' +
+        '</div>';
+    }).join('');
+    return '<div class="citations-section">' +
+      '<div class="citations-label">Citations (' + citations.length + ')</div>' +
+      items +
+      '</div>';
+  }
+
+  // ── RENDER ANSWER CARD ─────────────────────────────────────────────────────
+  function renderAnswerCard(ans, idx) {
+    // Handle rank as string ("BEST") or number (1) or missing
+    var rawRank = ans.rank;
+    var rank;
+    if (typeof rawRank === 'number') {
+      rank = rawRank === 1 ? 'BEST' : (rawRank === 2 ? 'GOOD' : 'RISKY');
+    } else if (typeof rawRank === 'string') {
+      rank = rawRank.toUpperCase();
+    } else {
+      rank = 'GOOD';
+    }
+    const rankLabels = { BEST: 'BEST', GOOD: 'GOOD', RISKY: 'RISKY' };
+    const label = rankLabels[rank] || rank;
+
+    const issues = (ans.issues || []).filter(Boolean);
+    const issuesHTML = issues.length > 0
+      ? '<div class="issues-list">' +
+          issues.map(i => '<div class="issue-item">Note: ' + esc(i) + '</div>').join('') +
+        '</div>'
+      : '';
+
+    const citeHTML = renderCitations(ans.citations);
+
+    const cardId = 'card-' + idx;
+    const ansId = 'ans-text-' + idx;
+
+    // Build brand display — handle multiple brand fields
+    var brandParts = [];
+    if (ans.brand) brandParts.push(ans.brand);
+    if (ans.brand_vertical) brandParts.push(ans.brand_vertical);
+    if (ans.brand_horizontal) brandParts.push(ans.brand_horizontal);
+    if (ans.brand_indian_global) brandParts.push(ans.brand_indian_global);
+    if (ans.option && brandParts.length === 0) brandParts.push('Option ' + ans.option);
+    var brandDisplay = brandParts.length > 0 ? brandParts.join(' | ') : 'Unknown Brand';
+
+    return '<div class="answer-card rank-' + rank + '" id="' + cardId + '">' +
+      '<div class="card-header">' +
+        '<span class="rank-badge">' + label + '</span>' +
+        '<span class="card-brand">' + esc(brandDisplay) + '</span>' +
+        (ans.framework ? '<span class="card-framework">' + esc(ans.framework) + '</span>' : '') +
+      '</div>' +
+      (ans.rank_reason ? '<div class="card-rank-reason">' + esc(ans.rank_reason) + '</div>' : '') +
+      (ans.framework_source ? '<div class="framework-ref" style="padding:4px 16px;font-size:12px;color:#666;background:#f0f7ff;border-left:3px solid #4a90d9;">' +
+        '<strong>Theory source:</strong> ' + esc(ans.framework_source.file || '') +
+        (ans.framework_source.section ? ' &rarr; ' + esc(ans.framework_source.section) : '') +
+        (ans.framework_source.cite_as ? '<br><em>Cite as: ' + esc(ans.framework_source.cite_as) + '</em>' : '') +
+        (ans.framework_source.page_hint ? '<br><span style="color:#888;">Hint: ' + esc(ans.framework_source.page_hint) + '</span>' : '') +
+      '</div>' : '') +
+      '<div class="card-body">' +
+        '<div class="answer-text" id="' + ansId + '">' + esc(ans.answer_text || '') + '</div>' +
+        issuesHTML +
+      '</div>' +
+      citeHTML +
+      '<div class="card-actions">' +
+        '<button class="btn btn-copy" onclick="doCopyAnswer(' + idx + ', this)">Copy Answer</button>' +
+        (ans.citations && ans.citations.length > 0
+          ? '<button class="btn btn-cite" onclick="doCopyCitations(' + idx + ', this)">Copy Citations</button>'
+          : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  // ── COPY ANSWER / CITATIONS (accessed globally) ────────────────────────────
+  window.doCopyAnswer = function(idx, btn) {
+    if (!currentData || !currentData.answers) return;
+    const ans = currentData.answers[idx];
+    if (!ans) return;
+    copyText(ans.answer_text || '', btn, 'Answer');
+  };
+
+  window.doCopyCitations = function(idx, btn) {
+    if (!currentData || !currentData.answers) return;
+    const ans = currentData.answers[idx];
+    if (!ans) return;
+    copyText(formatCitations(ans.citations), btn, 'Citations');
+  };
+
+  // ── RENDER CHATGPT PANEL ───────────────────────────────────────────────────
+  function renderChatGPT(chatgpt) {
+    const area = document.getElementById('chatgpt-area');
+
+    if (!chatgpt || chatgpt.error) {
+      area.innerHTML =
+        '<div class="chatgpt-card">' +
+          '<div class="chatgpt-card-header">ChatGPT Response</div>' +
+          '<div class="chatgpt-unavailable">ChatGPT: Unavailable' +
+            (chatgpt && chatgpt.error ? ' — ' + esc(chatgpt.error) : '') +
+          '</div>' +
+        '</div>';
+      return;
+    }
+
+    const responseHTML =
+      '<div class="chatgpt-card">' +
+        '<div class="chatgpt-card-header">ChatGPT Response</div>' +
+        '<div class="chatgpt-response-text">' +
+          esc(chatgpt.response || 'No response text.') +
+        '</div>' +
+      '</div>';
+
+    const brands = chatgpt.brands_mentioned || [];
+    const brandsHTML =
+      '<div class="brands-card">' +
+        '<div class="brands-card-header">Brands Mentioned — Avoid These</div>' +
+        (brands.length > 0
+          ? '<div class="brands-list">' +
+              brands.map(b =>
+                '<div class="brand-avoid-item">' +
+                  '<span class="brand-x">X</span>' +
+                  '<span>' + esc(b) + '</span>' +
+                '</div>'
+              ).join('') +
+            '</div>'
+          : '<div class="no-brands">No brand names extracted.</div>') +
+      '</div>';
+
+    area.innerHTML = responseHTML + brandsHTML;
+  }
+
+  // ── RENDER RECOMMENDER ─────────────────────────────────────────────────────
+  function renderRecommender(data) {
+    const verdictText = document.getElementById('verdict-text');
+    const checksRow = document.getElementById('checks-row');
+
+    const status = data.status;
+
+    if (status === 'generating' || status === 'waiting') {
+      verdictText.innerHTML = 'Waiting for answers to generate...';
+      verdictText.style.color = 'var(--muted)';
+      verdictText.style.fontStyle = 'italic';
+      verdictText.style.fontWeight = '400';
+      checksRow.innerHTML = '';
+      return;
+    }
+
+    if (status === 'answers_ready') {
+      verdictText.innerHTML =
+        '<div class="verdict-spinner-wrap">' +
+          '<div class="spinner spinner-sm"></div>' +
+          'Analyzing best option...' +
+        '</div>';
+      verdictText.style.color = '';
+      verdictText.style.fontStyle = '';
+      verdictText.style.fontWeight = '';
+      checksRow.innerHTML = '';
+      return;
+    }
+
+    // complete
+    const rec = data.recommender;
+    if (!rec) {
+      verdictText.textContent = 'No verdict available.';
+      verdictText.style.color = 'var(--muted)';
+      verdictText.style.fontStyle = 'italic';
+      verdictText.style.fontWeight = '400';
+      checksRow.innerHTML = '';
+      return;
+    }
+
+    verdictText.textContent = rec.verdict || 'No verdict.';
+    verdictText.style.color = 'var(--text)';
+    verdictText.style.fontStyle = '';
+    verdictText.style.fontWeight = '600';
+
+    const checks = rec.checks || {};
+    const checkDefs = [
+      { key: 'all_urls_valid',       label: 'URLs Valid' },
+      { key: 'all_quotes_verified',  label: 'Quotes Verified' },
+      { key: 'no_banned_brands',     label: 'No Banned Brands' },
+      { key: 'no_chatgpt_overlap',   label: 'No ChatGPT Overlap' },
+    ];
+
+    checksRow.innerHTML = checkDefs.map(def => {
+      const val = checks[def.key];
+      const pass = val === true;
+      const unknown = val === undefined || val === null;
+      return '<div class="check-item ' + (unknown ? '' : pass ? 'pass' : 'fail') + '">' +
+        '<span class="check-icon">' + (unknown ? '?' : pass ? 'OK' : 'X') + '</span>' +
+        esc(def.label) +
+      '</div>';
+    }).join('');
+  }
+
+  // ── MAIN RENDER ────────────────────────────────────────────────────────────
+  function render(data) {
+    currentData = data;
+
+    const status = data.status || 'waiting';
+
+    // Question bar
+    const qNum = document.getElementById('q-num');
+    const qText = document.getElementById('question-text');
+    qNum.textContent = data.question_number || '?';
+    if (data.question) {
+      qText.textContent = data.question;
+      qText.classList.remove('placeholder');
+    } else {
+      qText.textContent = 'Waiting for question...';
+      qText.classList.add('placeholder');
+    }
+
+    // Status badge
+    const badge = document.getElementById('status-badge');
+    const statusLabels = {
+      waiting: 'Waiting',
+      generating: 'Generating...',
+      answers_ready: 'Answers Ready',
+      complete: 'Complete',
+    };
+    badge.textContent = statusLabels[status] || status;
+    badge.className = 'status-badge ' + status;
+    badge.id = 'status-badge';
+
+    // Answers area
+    const answersArea = document.getElementById('answers-area');
+    if (status === 'waiting') {
+      answersArea.innerHTML =
+        '<div class="waiting-msg">' +
+          '<p>Waiting for question input...</p>' +
+          '<small>The dashboard will update automatically</small>' +
+        '</div>';
+    } else if (status === 'generating') {
+      answersArea.innerHTML =
+        '<div class="spinner-wrap">' +
+          '<div class="spinner"></div>' +
+          '<div class="spinner-label">Generating answers...</div>' +
+        '</div>';
+    } else {
+      const answers = data.answers || [];
+      if (answers.length === 0) {
+        answersArea.innerHTML =
+          '<div class="waiting-msg"><p>No answers yet.</p></div>';
+      } else {
+        let html = '';
+
+        // Auto-extract Brand Bank from answers by deduplicating citations
+        const seen = {};
+        const brandBank = [];
+        try {
+          answers.forEach(function(a) {
+            var bp = [];
+            if (a.brand) bp.push(a.brand);
+            if (a.brand_vertical) bp.push(a.brand_vertical);
+            if (a.brand_horizontal) bp.push(a.brand_horizontal);
+            if (a.brand_indian_global) bp.push(a.brand_indian_global);
+            var brandName = bp.length > 0 ? bp.join(' | ') : (a.option ? 'Option ' + a.option : '');
+            var cites = a.citations || [];
+            // Handle case where citations might be nested or in a different structure
+            if (!Array.isArray(cites)) cites = [];
+            cites.forEach(function(c) {
+              if (!c || typeof c !== 'object') return;
+              var key = (c.url || c.title || '').toLowerCase();
+              if (key && !seen[key] && c.url && !c.url.startsWith('knowledge_base')) {
+                seen[key] = true;
+                brandBank.push({
+                  brand: brandName,
+                  brand_concept: a.brand_concept || '',
+                  quote: c.quoted_text || '',
+                  author: c.author || '',
+                  title: c.title || '',
+                  publication: c.publication || '',
+                  date: c.date || '',
+                  url: c.url || '',
+                  url_ok: c.url_verified !== false,
+                  quote_ok: c.quote_verified !== false
+                });
+              }
+            });
+          });
+        } catch(e) { console.error('Brand bank extraction error:', e); }
+
+        if (brandBank.length > 0) {
+          html += '<div style="margin-bottom:20px;padding:16px;background:#f0fdf4;border:2px solid #22c55e;border-radius:8px;">' +
+            '<div style="font-weight:700;font-size:16px;color:#166534;margin-bottom:12px;">BRAND BANK \u2014 All unique brands & citations (' + brandBank.length + ')</div>';
+          brandBank.forEach(function(b, idx) {
+            const urlStatus = b.url_ok ? '<span style="color:#059669;font-size:10px;font-weight:600;">URL OK</span>' : '<span style="color:#dc2626;font-size:10px;font-weight:600;">URL ?</span>';
+            const quoteStatus = b.quote_ok ? '<span style="color:#059669;font-size:10px;font-weight:600;">Quote OK</span>' : '<span style="color:#dc2626;font-size:10px;font-weight:600;">Quote ?</span>';
+            html += '<div style="background:white;border:1px solid #d1d5db;border-radius:6px;padding:12px;margin-bottom:8px;">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<strong style="font-size:14px;color:#1a1a2e;">[' + (idx+1) + '] ' + esc(b.brand) + '</strong>' +
+                '<div style="display:flex;gap:6px;">' + urlStatus + ' ' + quoteStatus + '</div>' +
+              '</div>' +
+              '<div style="font-size:12px;color:#374151;margin-top:2px;">' + esc(b.author) + ' \u2014 ' + esc(b.title) + '</div>' +
+              (b.brand_concept ? '<div style="font-size:12px;color:#7c3aed;margin-top:4px;font-weight:600;background:#f5f3ff;padding:3px 8px;border-radius:4px;display:inline-block;">' + esc(b.brand_concept) + '</div>' : '') +
+              '<div style="font-size:11px;color:#6b7280;margin-top:2px;">' + esc(b.publication) + ' \u00b7 ' + esc(b.date) + '</div>' +
+              (b.quote ? '<div style="font-size:13px;font-style:italic;background:#fff8e1;border-left:4px solid #f59e0b;padding:8px 12px;margin-top:8px;color:#1a1a2e;font-weight:500;line-height:1.5;">\u201C' + esc(b.quote) + '\u201D</div>' : '') +
+              '<div style="font-size:11px;color:#2563eb;margin-top:4px;word-break:break-all;">' + esc(b.url) + '</div>' +
+            '</div>';
+          });
+          html += '</div>';
+        }
+
+        // Answer options below
+        html += '<div style="font-weight:700;font-size:14px;color:#374151;margin-bottom:8px;">PRE-WRITTEN OPTIONS (or mix-and-match from brands above)</div>';
+        html += answers.map(function(a, i) {
+          try { return renderAnswerCard(a, i); }
+          catch(e) {
+            // Render as clean readable text instead of raw JSON
+            var fallback = '<div class="answer-card" style="border:2px solid #6366f1;padding:16px;background:#f5f3ff;">';
+            fallback += '<div style="font-weight:700;font-size:15px;color:#4f46e5;margin-bottom:12px;">Option ' + (i+1) + '</div>';
+            // Recursively render all key-value pairs as readable text
+            function renderObj(obj, indent) {
+              var out = '';
+              for (var k in obj) {
+                if (!obj.hasOwnProperty(k)) continue;
+                var val = obj[k];
+                var label = k.replace(/_/g, ' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+                if (val === null || val === undefined || val === '') continue;
+                if (typeof val === 'object' && !Array.isArray(val)) {
+                  out += '<div style="margin-left:' + (indent*16) + 'px;margin-top:8px;"><strong style="color:#4f46e5;">' + esc(label) + ':</strong></div>';
+                  out += renderObj(val, indent+1);
+                } else if (Array.isArray(val)) {
+                  out += '<div style="margin-left:' + (indent*16) + 'px;margin-top:8px;"><strong style="color:#4f46e5;">' + esc(label) + ':</strong></div>';
+                  val.forEach(function(item, j) {
+                    if (typeof item === 'object') {
+                      out += '<div style="margin-left:' + ((indent+1)*16) + 'px;margin-top:6px;border-left:3px solid #c7d2fe;padding-left:8px;">';
+                      out += renderObj(item, indent+2);
+                      out += '</div>';
+                    } else {
+                      out += '<div style="margin-left:' + ((indent+1)*16) + 'px;">' + esc(String(item)) + '</div>';
+                    }
+                  });
+                } else {
+                  var isQuote = k === 'quoted_text' || k === 'key_quote';
+                  if (isQuote) {
+                    out += '<div style="margin-left:' + (indent*16) + 'px;margin-top:4px;"><strong style="color:#4f46e5;">' + esc(label) + ':</strong></div>';
+                    out += '<div style="margin-left:' + (indent*16) + 'px;background:#fff8e1;border-left:4px solid #f59e0b;padding:8px 12px;font-style:italic;font-weight:500;margin-top:2px;">' + esc(String(val)) + '</div>';
+                  } else {
+                    out += '<div style="margin-left:' + (indent*16) + 'px;margin-top:4px;"><strong style="color:#4f46e5;">' + esc(label) + ':</strong> ' + esc(String(val)) + '</div>';
+                  }
+                }
+              }
+              return out;
+            }
+            fallback += renderObj(a, 0);
+            fallback += '</div>';
+            return fallback;
+          }
+        }).join('');
+        answersArea.innerHTML = html;
+      }
+    }
+
+    // ChatGPT panel
+    renderChatGPT(data.chatgpt);
+
+    // Recommender
+    renderRecommender(data);
+  }
+
+  // ── TABS (saved answers) ───────────────────────────────────────────────────
+  function buildTabs(files) {
+    const tabsEl = document.getElementById('tabs');
+    // Keep "Current" tab
+    const currentTab = '';
+
+    // Load each saved file to get the real question_number for tab labels
+    var fileTabs = '';
+    var jsonFiles = files.filter(f => f.endsWith('.json')).sort();
+    var pending = jsonFiles.length;
+    if (pending === 0) {
+      tabsEl.innerHTML = currentTab;
+      return;
+    }
+    var tabData = [];
+    jsonFiles.forEach(function(f) {
+      fetch('saved_answers/' + encodeURIComponent(f) + '?t=' + Date.now())
+        .then(r => r.json())
+        .then(d => {
+          tabData.push({ file: f, num: d.question_number || '?', question: (d.question || '').substring(0, 60) });
+        })
+        .catch(() => {
+          tabData.push({ file: f, num: '?', question: f });
+        })
+        .finally(() => {
+          pending--;
+          if (pending === 0) {
+            tabData.sort((a, b) => String(a.num).localeCompare(String(b.num), undefined, {numeric: true}));
+            var tabs = tabData.map(t =>
+              '<div class="tab" data-file="' + esc(t.file) + '" onclick="switchTab(\'' + esc(t.file) + '\', this)" title="' + esc(t.question) + '">Q' + esc(String(t.num)) + '</div>'
+            ).join('');
+            tabsEl.innerHTML = currentTab + tabs;
+          }
+        });
+    });
+  }
+
+  window.switchTab = function(file, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    loadedFile = file;
+    if (file === 'current') {
+      loadResults();
+    } else {
+      fetch('saved_answers/' + encodeURIComponent(file) + '?t=' + Date.now())
+        .then(r => r.json())
+        .then(data => render(data))
+        .catch(() => {});
+    }
+  };
+
+  function loadSavedAnswers() {
+    fetch('saved_answers/?t=' + Date.now())
+      .then(r => {
+        if (!r.ok) throw new Error('not ok');
+        return r.json();
+      })
+      .then(files => {
+        if (Array.isArray(files) && files.length > 0) {
+          buildTabs(files);
+        }
+      })
+      .catch(() => {
+        // saved_answers dir not available or not listing — ignore
+      });
+  }
+
+  // ── REFRESH INDICATOR ─────────────────────────────────────────────────────
+  function flashRefresh() {
+    const dot = document.getElementById('refresh-dot');
+    const time = document.getElementById('refresh-time');
+    dot.classList.add('pulse');
+    setTimeout(() => dot.classList.remove('pulse'), 700);
+    const now = new Date();
+    time.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  // ── LOAD RESULTS ──────────────────────────────────────────────────────────
+  function loadResults() {
+    fetch('results.json?t=' + Date.now())
+      .then(r => {
+        if (!r.ok) throw new Error('not ok');
+        return r.json();
+      })
+      .then(data => {
+        flashRefresh();
+        render(data);
+      })
+      .catch(() => {
+        flashRefresh();
+        // If no results.json, show waiting state
+        if (!currentData) {
+          render({ status: 'waiting' });
+        }
+      });
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────────────
+  loadResults();
+  loadSavedAnswers();
+
+  // Auto-refresh every 2 seconds
+  setInterval(() => {
+    if (loadedFile === 'latest') {
+      loadResults();
+    }
+  }, 2000);
+
+  // Reload saved answers list every 30 seconds
+  setInterval(loadSavedAnswers, 30000);
+</script>
+
+<!-- Troubleshooting Guide (always visible at bottom) -->
+<div style="position:fixed;bottom:0;left:0;right:0;background:#1a1a2e;color:#ccc;font-size:12px;z-index:9999;">
+  <details style="padding:4px 16px;">
+    <summary style="cursor:pointer;color:#ffd700;font-weight:bold;">Help - If something goes wrong</summary>
+    <div style="padding:8px 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:200px;overflow-y:auto;">
+      <div>
+        <strong style="color:#ff6b6b;">Nothing happening for 2+ minutes?</strong><br>
+        Go to the black window, press Ctrl+C, then paste: <code>paste the question again</code>
+      </div>
+      <div>
+        <strong style="color:#ff6b6b;">Dashboard shows old/wrong data?</strong><br>
+        Press F5 to refresh. Or close and reopen: <code>localhost:5000</code>
+      </div>
+      <div>
+        <strong style="color:#ff6b6b;">Answers have no citations?</strong><br>
+        Type in black window: <code>more examples</code> — it will retry with better sources
+      </div>
+      <div>
+        <strong style="color:#ff6b6b;">Got a banned brand warning?</strong><br>
+        Type in black window: <code>more examples</code> — it will find different brands
+      </div>
+      <div>
+        <strong style="color:#ff6b6b;">Answer too long for word limit?</strong><br>
+        Shorten while writing on paper. Focus on: concept (1 line) + example + quote
+      </div>
+      <div>
+        <strong style="color:#ff6b6b;">Want different frameworks?</strong><br>
+        Type in black window: <code>try Aaker</code> or <code>try Kapferer</code> or <code>different framework</code>
+      </div>
+      <div>
+        <strong style="color:#ff6b6b;">Black window crashed/closed?</strong><br>
+        Double-click <code>START.bat</code> on the desktop to restart everything
+      </div>
+      <div>
+        <strong style="color:#ff6b6b;">Want to discuss a specific question?</strong><br>
+        Type in black window: <code>tell me more about Q3</code> or <code>explain the theory for Q5</code>
+      </div>
+    </div>
+  </details>
+</div>
+
+</body>
+</html>
