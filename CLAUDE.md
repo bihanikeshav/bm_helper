@@ -43,7 +43,7 @@ Launch both using the Agent tool with `run_in_background: true`:
 - The exam question
 - Relevant knowledge base chunks (from Step 2 + relevant sections already in your context)
 - The banned brands list from exam_config.json
-- **IMPORTANT: Tell the agent it MUST use WebSearch and WebFetch to find real articles with real URLs. Every citation needs a verifiable URL. No exceptions.**
+- **Tell the agent: use WebSearch to find real articles with URLs. Max 3 searches, max 3 fetches. Speed over perfection — 3 minutes max.**
 
 **ChatGPT Scraper:** Run via Bash (background): `python chatgpt_scraper.py "the question text"`
 If it fails, continue without it.
@@ -145,15 +145,21 @@ If user pastes all questions at once (or says "batch"):
 5. Main thread merges completed results into results.json ONE AT A TIME (no race condition)
 6. User can interact while agents run in background ("what's the theory behind Q3?")
 
-## Stale Agent Detection
+## Agent Patience Rules
 
-After launching any background agent, check on it every 5 minutes:
-1. **At 5 min:** Check agent output.
-   - Output growing → let it work, check again at 10 min
-   - Output empty → likely stale, relaunch with simpler prompt (fewer options, skip WebFetch)
-   - Output partial + frozen → use what's there, relaunch for missing parts
-2. **At 10 min:** If no new output since 5-min check → definitely stale, relaunch simpler
-3. **Never kill a working agent.** If output is growing, it's just slow.
+**DO NOT get impatient.** Agents take 3-5 minutes typically. This is NORMAL.
+
+**DO NOT:**
+- Launch a "simpler" replacement agent while the first is still running
+- Try to do the agent's job yourself in the main thread
+- Launch multiple agents for the same question
+- Relaunch unless you are CERTAIN the agent is dead (see below)
+
+**Stale detection — only after 8 minutes:**
+1. **Before 8 min:** Do nothing. Let the agent work. Tell the user "Still working, should be done soon."
+2. **At 8 min:** Check the agent's output. If it has partial results, USE THEM as-is. Write to results.json with whatever is there.
+3. **Only relaunch if:** output is completely empty after 8 minutes AND the agent has returned no notification. Then relaunch with a simplified prompt: "Find 2 brands only, max 2 WebSearch calls, no WebFetch."
+4. **Never run the same work in the main thread.** The main thread is for orchestration and talking to the user, not for generating answers.
 
 ## Progressive Dashboard Updates
 
