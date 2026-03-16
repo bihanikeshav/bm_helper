@@ -1058,7 +1058,6 @@
                 var isOverlap = ourBrands.some(function(ob) {
                   return ob.indexOf(bLower) !== -1 || bLower.indexOf(ob) !== -1;
                 });
-                b._overlap = isOverlap;
                 return { name: b, overlap: isOverlap };
               })
               .sort(function(a, b) { return (b.overlap ? 1 : 0) - (a.overlap ? 1 : 0); })
@@ -1307,10 +1306,10 @@
     }
 
     // ChatGPT panel
-    renderChatGPT(data.chatgpt, data.answers);
+    try { renderChatGPT(data.chatgpt, data.answers); } catch(e) { console.error('ChatGPT render error:', e); }
 
     // Recommender
-    renderRecommender(data);
+    try { renderRecommender(data); } catch(e) { console.error('Recommender render error:', e); }
   }
 
   // ── TABS (saved answers) ───────────────────────────────────────────────────
