@@ -1017,7 +1017,7 @@
   };
 
   // ── RENDER CHATGPT PANEL ───────────────────────────────────────────────────
-  function renderChatGPT(chatgpt) {
+  function renderChatGPT(chatgpt, answers) {
     const area = document.getElementById('chatgpt-area');
 
     if (!chatgpt || chatgpt.error) {
@@ -1030,6 +1030,14 @@
         '</div>';
       return;
     }
+
+    // Collect all brand names from our answers for overlap detection
+    var ourBrands = [];
+    (answers || []).forEach(function(a) {
+      ['brand', 'brand_vertical', 'brand_horizontal', 'brand_indian_global'].forEach(function(key) {
+        if (a[key]) ourBrands.push(a[key].toLowerCase());
+      });
+    });
 
     const responseHTML =
       '<div class="chatgpt-card">' +
@@ -1045,12 +1053,23 @@
         '<div class="brands-card-header">Brands Mentioned — Avoid These</div>' +
         (brands.length > 0
           ? '<div class="brands-list">' +
-              brands.map(b =>
-                '<div class="brand-avoid-item">' +
+              brands.map(function(b) {
+                // Check if this ChatGPT brand overlaps with any of our answer brands
+                var bLower = b.toLowerCase();
+                var isOverlap = ourBrands.some(function(ob) {
+                  return ob.indexOf(bLower) !== -1 || bLower.indexOf(ob) !== -1;
+                });
+                if (isOverlap) {
+                  return '<div class="brand-avoid-item" style="background:#fef2f2;border:2px solid #ef4444;border-radius:4px;padding:4px 8px;">' +
+                    '<span class="brand-x" style="color:#dc2626;font-weight:800;">OVERLAP</span>' +
+                    '<span style="color:#dc2626;font-weight:700;">' + esc(b) + ' — USED IN YOUR ANSWERS!</span>' +
+                  '</div>';
+                }
+                return '<div class="brand-avoid-item">' +
                   '<span class="brand-x">X</span>' +
                   '<span>' + esc(b) + '</span>' +
-                '</div>'
-              ).join('') +
+                '</div>';
+              }).join('') +
             '</div>'
           : '<div class="no-brands">No brand names extracted.</div>') +
       '</div>';
@@ -1284,7 +1303,7 @@
     }
 
     // ChatGPT panel
-    renderChatGPT(data.chatgpt);
+    renderChatGPT(data.chatgpt, data.answers);
 
     // Recommender
     renderRecommender(data);
