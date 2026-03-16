@@ -52,7 +52,9 @@ Print: `Generating answers + checking ChatGPT... (you can ask me anything while 
 
 ### Step 4: Write Partial Results
 
-Once both agents return, merge their outputs into `results.json`:
+**IMPORTANT: results.json must contain ONE question at a time with a FLAT structure. NEVER nest multiple questions under a `questions` key. The dashboard expects the flat format below. Each question is saved separately to `saved_answers/q{N}.json`. results.json always holds only the latest/active question.**
+
+Once both agents return, write to `results.json`:
 
 ```python
 import json, os, time
