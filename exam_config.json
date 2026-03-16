@@ -6,9 +6,17 @@
     "market": "Indian market (Indian brands or MNCs operating in India)",
     "global_branding_exception": "For global branding questions, examples must be Indian/MNC brands going abroad (NOT about multinationals entering India)",
     "citation_format": {
-      "required_fields": ["author", "title", "publication", "date"],
-      "optional_fields": ["page_number", "youtube_timestamps"],
-      "no_urls_needed": true,
+      "required_fields": [
+        "author",
+        "title",
+        "publication",
+        "date"
+      ],
+      "optional_fields": [
+        "page_number",
+        "youtube_timestamps"
+      ],
+      "no_urls_needed": "URLs not needed on PAPER (saves handwriting time), but MUST be included in the digital output for verification. The generator MUST find and include real URLs via WebSearch.",
       "must_include_exact_quotes": true,
       "number_multiple_references": true,
       "note": "If multiple references in one answer, assign a number to each reference and cite the number next to the copied sentence. List all references with numbers at the end of the answer."
