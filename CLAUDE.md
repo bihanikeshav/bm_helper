@@ -41,8 +41,9 @@ Launch both using the Agent tool with `run_in_background: true`:
 
 **Generator:** Read `prompts/generator.md` for its system prompt. Pass it:
 - The exam question
-- Relevant knowledge base chunks (from Step 2 + relevant sections from knowledge_bundle.md already in your context)
+- Relevant knowledge base chunks (from Step 2 + relevant sections already in your context)
 - The banned brands list from exam_config.json
+- **IMPORTANT: Tell the agent it MUST use WebSearch and WebFetch to find real articles with real URLs. Every citation needs a verifiable URL. No exceptions.**
 
 **ChatGPT Scraper:** Run via Bash (background): `python chatgpt_scraper.py "the question text"`
 If it fails, continue without it.
