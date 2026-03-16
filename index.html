@@ -1054,20 +1054,24 @@
         (brands.length > 0
           ? '<div class="brands-list">' +
               brands.map(function(b) {
-                // Check if this ChatGPT brand overlaps with any of our answer brands
                 var bLower = b.toLowerCase();
                 var isOverlap = ourBrands.some(function(ob) {
                   return ob.indexOf(bLower) !== -1 || bLower.indexOf(ob) !== -1;
                 });
-                if (isOverlap) {
-                  return '<div class="brand-avoid-item" style="background:#fef2f2;border:2px solid #ef4444;border-radius:4px;padding:4px 8px;">' +
+                b._overlap = isOverlap;
+                return { name: b, overlap: isOverlap };
+              })
+              .sort(function(a, b) { return (b.overlap ? 1 : 0) - (a.overlap ? 1 : 0); })
+              .map(function(item) {
+                if (item.overlap) {
+                  return '<div class="brand-avoid-item" style="background:#fef2f2;border:2px solid #ef4444;border-radius:4px;padding:6px 10px;">' +
                     '<span class="brand-x" style="color:#dc2626;font-weight:800;">OVERLAP</span>' +
-                    '<span style="color:#dc2626;font-weight:700;">' + esc(b) + ' — USED IN YOUR ANSWERS!</span>' +
+                    '<span style="color:#dc2626;font-weight:700;">' + esc(item.name) + ' — USED IN YOUR ANSWERS!</span>' +
                   '</div>';
                 }
-                return '<div class="brand-avoid-item">' +
-                  '<span class="brand-x">X</span>' +
-                  '<span>' + esc(b) + '</span>' +
+                return '<div class="brand-avoid-item" style="background:#fff5f5;border:1px solid #fecaca;">' +
+                  '<span class="brand-x" style="color:#f87171;">X</span>' +
+                  '<span style="color:#f87171;">' + esc(item.name) + '</span>' +
                 '</div>';
               }).join('') +
             '</div>'
