@@ -39,11 +39,11 @@ Read the returned JSON. Hot = semantic matches. Cold = textbook keyword matches 
 ### Step 3: Spawn Generator + ChatGPT Scraper (PARALLEL, BACKGROUND)
 Launch both using the Agent tool with `run_in_background: true`:
 
-**Generator:** Read `prompts/generator.md` for its system prompt. Pass it:
+**Generator:** Read `prompts/generator.md` and paste its FULL content into the agent prompt. Also paste inline:
 - The exam question
 - Relevant knowledge base chunks (from Step 2 + relevant sections already in your context)
-- The banned brands list from exam_config.json
-- **Tell the agent: use WebSearch to find real articles with URLs. Search as many brands as needed. Skip slow/paywalled sites when fetching.**
+- The banned brands list (paste the list from exam_config.json directly — don't make the agent read the file)
+This way the agent doesn't waste tool calls reading files. It starts searching immediately.
 
 **ChatGPT Scraper:** Run via Bash (background): `python chatgpt_scraper.py "the question text"`
 If it fails, continue without it.

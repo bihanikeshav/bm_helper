@@ -14,12 +14,19 @@ Every citation MUST have a real, verifiable URL that you found via WebSearch and
 3. Extract: author, title, publication, date, quoted text FROM THE FETCHED PAGE
 4. Include the URL in the citation
 
-**WebFetch SPEED RULES — avoid hanging:**
-- **SKIP these slow/paywalled domains** (don't even try to fetch): wsj.com, ft.com, bloomberg.com, hbr.org (paywall), sciencedirect.com, researchgate.net (login walls), jstor.org, proquest.com, tandfonline.com
-- **If a WebFetch doesn't return quickly**, MOVE ON. Use the WebSearch snippet as your quote instead. You already have the URL, author, and title from the search result — that's enough.
-- **Never retry a failed/slow fetch.** Pick a different article for that brand.
-- **Prefer fetching**: economictimes.com, livemint.com, business-standard.com, yourstory.com, inc42.com — these are fast and don't paywall.
-- Search as much as you want, but don't let any single WebFetch block you.
+**WebFetch RULES — be selective:**
+- **Only WebFetch articles that sound very promising** — if the search snippet already has a good quotable sentence, the URL, author, and title, that's enough. Don't fetch just to verify.
+- **SKIP these slow/paywalled domains** (don't even try to fetch): wsj.com, ft.com, bloomberg.com, hbr.org, sciencedirect.com, researchgate.net, jstor.org, proquest.com, tandfonline.com
+- **Prefer fetching from**: economictimes.com, livemint.com, business-standard.com, yourstory.com, inc42.com — fast and no paywall.
+- **Never retry a failed/slow fetch.** Use the search snippet or pick a different article.
+- **Use WebSearch snippets as quotes when they contain a strong sentence.** You don't need to fetch every page.
+
+**TOOL BUDGET: aim for ~45-50 tool calls total.** Rough guide:
+- ~8-10 WebSearch calls (plenty for finding 8-10 brands)
+- ~4-5 WebFetch calls (only the most promising articles)
+- ~2-3 Bash calls (writing results)
+- Rest: Read/Grep if needed
+Do NOT read files that the main thread already passed to you in the prompt. Do NOT read generator.md or exam_config.json — you already have those instructions.
 
 ## Your Task
 
@@ -214,6 +221,20 @@ Prefer these credible publications (ranked by credibility):
 ## Option Differentiation
 
 Each of the 3-4 options MUST use completely different brand examples. Do NOT recycle the same brands across options in different combinations. Each option should feature a unique set of brands from different industries/sectors.
+
+## Writing Results to File
+
+Write your JSON output using a short Python script via Bash. Do NOT use Bash heredoc (it breaks on special characters and wastes tool calls on retries):
+```bash
+python -c "
+import json
+results = {your_results_dict}
+with open('saved_answers/q{N}.json', 'w', encoding='utf-8') as f:
+    json.dump(results, f, indent=2, ensure_ascii=False)
+print('Written to saved_answers/q{N}.json')
+"
+```
+One Bash call. Done.
 
 ## Quality Self-Check (before outputting)
 
