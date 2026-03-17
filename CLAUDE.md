@@ -140,34 +140,53 @@ If user pastes all questions at once (or says "batch"):
 **NEVER do the agent's work in the main thread.** The main thread is ONLY for:
 - Orchestrating (spawning agents, writing results.json)
 - Talking to the user
-- Monitoring agents (checking every 1 minute)
+- Monitoring agents via partial file checks
 - If you do heavy work (WebSearch/WebFetch) in the main thread, it BLOCKS agent return notifications. This is the #1 cause of perceived hangs.
 
 **NEVER:**
 - Try to generate answers yourself in the main thread
 - Do WebSearch/WebFetch in the main thread while agents are running
 
-**Agent health monitoring — check every 1 minute:**
-After launching a background agent, check its output file every ~1 minute:
+## Agent Monitoring Protocol (CONCRETE STEPS)
 
-1. **Agent is progressing** (new output since last check) → healthy, let it continue
-2. **Agent is stuck on the same WebFetch for 2+ checks** (output shows "Fetching..." with no new content) → the WebFetch is hung on a slow/paywalled site. This is a COMMON bug.
-   - Read the agent's output to extract whatever answers/data it has produced so far
-   - Launch a NEW replacement agent with: "Here is partial data from a previous attempt: [paste the partial answers]. Complete the remaining options. SKIP these URLs that hung: [list the stuck URLs]. Use different sources."
-   - The old agent will eventually timeout on its own — you cannot kill it
-   - If the old agent returns AFTER the replacement is done, IGNORE its output (don't overwrite the replacement's results)
-3. **Agent output is completely empty after 3 minutes** → agent is dead, relaunch with the same prompt
+The generator agent now writes incremental results to `saved_answers/q{N}_partial.json` after EACH completed option. The main thread monitors THIS file.
 
-**Key insight:** The most common failure is WebFetch hanging on a single URL. The agent has usually found 2-3 good answers before it gets stuck on one bad fetch. Don't waste those — extract them and pass to a replacement agent.
+**Timeline after launching generator agent:**
 
-**ONE replacement only:** Once you launch a replacement agent for a question, STOP monitoring the old agent. Do NOT launch a second replacement. If the replacement also gets stuck after 5 minutes, use whatever partial data exists from BOTH agents combined and write it to results.json as-is. Two attempts is the max — after that, go with what you have.
+**At 2 minutes:** Check if `saved_answers/q{N}_partial.json` exists.
+```bash
+ls -la saved_answers/q{N}_partial.json 2>/dev/null && python -c "import json; d=json.load(open('saved_answers/q{N}_partial.json')); print(f'Partial: {d.get(\"completed\",0)} options done')" || echo "No partial file yet"
+```
+- If partial file exists with 1+ options → agent is working, let it continue
+- If no partial file → check again at 3 minutes
+
+**At 4 minutes:** Check partial file again.
+```bash
+python -c "import json; d=json.load(open('saved_answers/q{N}_partial.json')); print(f'Options: {d.get(\"completed\",0)}')" 2>/dev/null || echo "STILL NO FILE"
+```
+- If partial has 2-3 options → agent is healthy, probably almost done
+- If partial has 1 option and hasn't changed since 2-minute check → agent is hung on WebFetch
+- If STILL no partial file → agent is dead
+
+**At 5 minutes (if agent appears stuck):**
+1. Read the partial file to get whatever options exist
+2. Launch a REPLACEMENT agent (foreground, NOT background) with:
+   - "Here are completed options from a previous attempt: [paste the partial JSON]. Generate 1-2 MORE options with DIFFERENT brands. DO NOT use WebFetch — use WebSearch snippets as quotes. Write final results to saved_answers/q{N}.json"
+3. The replacement agent skips WebFetch entirely to avoid the same hang
+4. STOP monitoring the old agent — if it returns later, ignore it
+
+**If agent completes on its own (background notification arrives):** Great — read its output, write to results.json. Ignore any partial file.
+
+**ONE replacement only.** If the replacement also hangs after 5 minutes, take whatever partial data exists and write it to results.json as-is. Two attempts is the max.
+
+**Key insight:** The generator now saves after EACH option. Even if it dies after Option 2, you have 2 good answers. The replacement only needs to add 1-2 more. This means worst case you get 2-3 options instead of zero.
 
 ## Progressive Dashboard Updates
 
 Write to results.json EVERY time new data arrives:
 - Status `"generating"` → when pipeline starts
 - Status `"answers_ready"` → when Generator finishes (dashboard shows answers immediately)
-- Status `"complete"` → when Recommender finishes (dashboard adds rankings)
+- Status `"complete"` → final (no separate Recommender stage)
 - In batch mode: update after EACH question completes
 
 ## Error Handling
@@ -175,7 +194,7 @@ Write to results.json EVERY time new data arrives:
 - **search_kb.py fails:** Use the kb_*.md files context directly (already in your context)
 - **ChatGPT scraper fails:** Set chatgpt to `{"response": "", "brands_mentioned": [], "error": "unavailable"}`
 - **Generator invalid JSON:** Try in order: (1) strip markdown fences and re-parse, (2) extract JSON between first { and last }, (3) extract answer_text fields via regex, (4) re-run once with "output ONLY valid JSON" instruction
-- **Recommender fails:** Show answers without rankings, note "Verification pending"
+- **Partial file exists but agent is dead:** Read partial, use whatever options are there, write to results.json as-is
 - **Malformed JSON before writing:** Always validate with `json.dumps(data)` before writing. Use atomic write pattern:
 ```python
 import json, os

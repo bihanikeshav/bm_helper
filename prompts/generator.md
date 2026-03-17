@@ -14,17 +14,19 @@ Every citation MUST have a real, verifiable URL that you found via WebSearch and
 3. Extract: author, title, publication, date, quoted text FROM THE FETCHED PAGE
 4. Include the URL in the citation
 
-**WebFetch RULES — be selective:**
+**WebFetch RULES — be selective and NEVER get stuck:**
+- **NEVER wait for a hung WebFetch.** If a fetch doesn't return quickly, MOVE ON. Do NOT retry. Use the search snippet instead or pick a different article. A hung fetch will kill your entire session.
 - **Only WebFetch articles that sound very promising** — if the search snippet already has a good quotable sentence, the URL, author, and title, that's enough. Don't fetch just to verify.
-- **SKIP these slow/paywalled domains** (don't even try to fetch): wsj.com, ft.com, bloomberg.com, hbr.org, sciencedirect.com, researchgate.net, jstor.org, proquest.com, tandfonline.com
+- **SKIP these slow/paywalled domains** (don't even try to fetch): wsj.com, ft.com, bloomberg.com, hbr.org, sciencedirect.com, researchgate.net, jstor.org, proquest.com, tandfonline.com, timesofindia.indiatimes.com, hindustantimes.com
 - **Prefer fetching from**: economictimes.com, livemint.com, business-standard.com, yourstory.com, inc42.com — fast and no paywall.
 - **Never retry a failed/slow fetch.** Use the search snippet or pick a different article.
 - **Use WebSearch snippets as quotes when they contain a strong sentence.** You don't need to fetch every page.
+- **MAX 6 WebFetch calls total.** More than that and you risk hanging. Search snippets are your friend.
 
-**TOOL BUDGET: aim for ~50 or somehere around it for tool calls total.** Rough guide:
+**TOOL BUDGET: aim for ~40 tool calls total.** Rough guide:
 - ~10-12 WebSearch calls (plenty for finding 8-10 brands)
-- ~8-10 WebFetch calls (only the most promising articles)
-- ~2-3 Bash calls (writing results)
+- ~4-6 WebFetch calls (ONLY the most promising articles — search snippets work for the rest)
+- ~4-5 Bash calls (one per incremental save + final write)
 - Rest: Read/Grep if needed
 Do NOT read files that the main thread already passed to you in the prompt. Do NOT read generator.md or exam_config.json — you already have those instructions.
 
@@ -222,19 +224,48 @@ Prefer these credible publications (ranked by credibility):
 
 Each of the 3-4 options MUST use completely different brand examples. Do NOT recycle the same brands across options in different combinations. Each option should feature a unique set of brands from different industries/sectors.
 
-## Writing Results to File
+## CRITICAL: Save After EVERY Completed Option (Incremental Writes)
 
-Write your JSON output using a short Python script via Bash. Do NOT use Bash heredoc (it breaks on special characters and wastes tool calls on retries):
+**DO NOT wait until all options are done to write.** WebFetch can hang and kill your entire session. Save after EACH completed answer option so your work is never lost.
+
+**After completing Option 1:** Write it immediately to `saved_answers/q{N}_partial.json`
+**After completing Option 2:** Append it and overwrite the partial file
+**After completing Option 3:** Append it and overwrite the partial file
+**After all options done:** Write final to `saved_answers/q{N}.json` (the main thread reads this)
+
+Use this pattern after EACH option (one Bash call per save):
 ```bash
 python -c "
-import json
-results = {your_results_dict}
-with open('saved_answers/q{N}.json', 'w', encoding='utf-8') as f:
-    json.dump(results, f, indent=2, ensure_ascii=False)
-print('Written to saved_answers/q{N}.json')
+import json, os
+# After Option 1:
+partial = {'answers': [option_1_dict], 'status': 'partial', 'completed': 1}
+# After Option 2: partial = {'answers': [option_1, option_2], 'status': 'partial', 'completed': 2}
+# etc.
+tmp = 'saved_answers/q{N}_partial.json.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(partial, f, indent=2, ensure_ascii=False)
+os.replace(tmp, 'saved_answers/q{N}_partial.json')
+print('Saved {len(partial[\"answers\"])} options to partial file')
 "
 ```
-One Bash call. Done.
+
+**When ALL options are done**, write the final file:
+```bash
+python -c "
+import json, os
+results = {'answers': [all_options]}
+tmp = 'saved_answers/q{N}.json.tmp'
+with open(tmp, 'w', encoding='utf-8') as f:
+    json.dump(results, f, indent=2, ensure_ascii=False)
+os.replace(tmp, 'saved_answers/q{N}.json')
+# Clean up partial
+if os.path.exists('saved_answers/q{N}_partial.json'):
+    os.remove('saved_answers/q{N}_partial.json')
+print('Written final to saved_answers/q{N}.json')
+"
+```
+
+**WHY THIS MATTERS:** If you hang on a WebFetch while working on Option 3, Options 1 and 2 are already saved. The main thread can rescue them and launch a replacement agent. Without incremental saves, ALL your work dies when you hang.
 
 ## Quality Self-Check (before outputting)
 
