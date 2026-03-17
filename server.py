@@ -1,6 +1,7 @@
 """Tiny HTTP server for BM Exam Helper dashboard."""
 import os
-from flask import Flask, send_from_directory, jsonify
+import requests
+from flask import Flask, send_from_directory, jsonify, request
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=BASE_DIR)
@@ -31,6 +32,28 @@ def list_saved():
         files = sorted(os.listdir(saved_dir), reverse=True)
         return jsonify(files)
     return jsonify([])
+
+
+@app.route("/check-url")
+def check_url():
+    """Proxy endpoint to verify citation URLs (avoids CORS issues)."""
+    url = request.args.get("url", "")
+    if not url:
+        return jsonify({"ok": False, "status": 0, "error": "no url"})
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        # Try HEAD first (fast, no body download)
+        r = requests.head(url, timeout=5, allow_redirects=True, headers=headers)
+        if r.status_code < 400:
+            return jsonify({"ok": True, "status": r.status_code})
+        # HEAD blocked (403/405)? Try GET with stream (only reads headers, not body)
+        r = requests.get(url, timeout=5, allow_redirects=True, headers=headers, stream=True)
+        r.close()
+        return jsonify({"ok": r.status_code < 400, "status": r.status_code})
+    except requests.exceptions.Timeout:
+        return jsonify({"ok": False, "status": 0, "error": "timeout"})
+    except Exception as e:
+        return jsonify({"ok": False, "status": 0, "error": str(e)[:100]})
 
 
 if __name__ == "__main__":

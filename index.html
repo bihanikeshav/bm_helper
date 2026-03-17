@@ -902,21 +902,83 @@
       .replace(/"/g, '&quot;');
   }
 
+  // ── URL VERIFICATION (runs after render, checks via server proxy) ─────────
+  // Persistent URL cache — survives page refresh, avoids re-checks and rate limits
+  var urlCache = {};
+  try { urlCache = JSON.parse(localStorage.getItem('bmUrlCache') || '{}'); } catch(e) { urlCache = {}; }
+  function saveUrlCache() { try { localStorage.setItem('bmUrlCache', JSON.stringify(urlCache)); } catch(e) {} }
+  function verifyAllUrls() {
+    // Collect all unique URLs to check
+    var urlsToCheck = {};
+    document.querySelectorAll('[data-check-url]').forEach(function(el) {
+      var url = el.getAttribute('data-check-url');
+      if (url) { if (!urlsToCheck[url]) urlsToCheck[url] = []; urlsToCheck[url].push({type:'badge', el:el}); }
+    });
+    document.querySelectorAll('[data-url-tick]').forEach(function(el) {
+      var url = el.getAttribute('data-url-tick');
+      if (url) { if (!urlsToCheck[url]) urlsToCheck[url] = []; urlsToCheck[url].push({type:'tick', el:el}); }
+    });
+
+    Object.keys(urlsToCheck).forEach(function(url) {
+      var targets = urlsToCheck[url];
+      // Check cache first
+      if (urlCache[url] !== undefined) {
+        targets.forEach(function(t) {
+          if (t.type === 'badge') applyUrlBadge(t.el, urlCache[url]);
+          else applyUrlTick(t.el, urlCache[url]);
+        });
+        return;
+      }
+      // Fetch check
+      fetch('/check-url?url=' + encodeURIComponent(url))
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          urlCache[url] = d.ok;
+          saveUrlCache();
+          targets.forEach(function(t) {
+            if (t.type === 'badge') applyUrlBadge(t.el, d.ok);
+            else applyUrlTick(t.el, d.ok);
+          });
+        })
+        .catch(function() {
+          // Don't cache failures — retry next time
+          targets.forEach(function(t) {
+            if (t.type === 'badge') applyUrlBadge(t.el, null);
+            else applyUrlTick(t.el, null);
+          });
+        });
+    });
+  }
+  function applyUrlBadge(badge, ok) {
+    if (ok === true) {
+      badge.innerHTML = '<span style="color:#059669;font-size:10px;font-weight:600;">URL \u2714</span>';
+    } else if (ok === false) {
+      badge.innerHTML = '<span style="color:#dc2626;font-size:10px;font-weight:600;">URL \u2718</span>';
+    } else {
+      badge.innerHTML = '<span style="color:#6b7280;font-size:10px;font-weight:600;">URL ?</span>';
+    }
+  }
+  function applyUrlTick(tick, ok) {
+    if (ok === true) { tick.textContent = '\u2705'; tick.style.color = '#059669'; }
+    else if (ok === false) { tick.textContent = '\u274C'; tick.style.color = '#dc2626'; }
+    else { tick.textContent = '\u2753'; tick.style.color = '#6b7280'; }
+  }
+
   // ── RENDER CITATIONS ───────────────────────────────────────────────────────
   function renderCitations(citations) {
     if (!citations || citations.length === 0) return '';
     const items = citations.map((c, i) => {
       const num = c.ref_number || (i + 1);
-      const urlOk = c.url_verified !== false;
-      const quoteOk = c.quote_verified !== false;
-      const urlTag = '<span class="cite-tag ' + (urlOk ? 'ok' : 'warn') + '">' +
-        (urlOk ? 'URL OK' : 'URL ?') + '</span>';
-      const quoteTag = '<span class="cite-tag ' + (quoteOk ? 'ok' : 'warn') + '">' +
-        (quoteOk ? 'Quote OK' : 'Quote ?') + '</span>';
+      const urlTag = c.url
+        ? '<span data-check-url="' + esc(c.url) + '"><span class="cite-tag warn">Checking\u2026</span></span>'
+        : '<span class="cite-tag warn">No URL</span>';
+      const quoteTag = c.quoted_text
+        ? '<span class="cite-tag ok">Has Quote</span>'
+        : '<span class="cite-tag warn">No Quote</span>';
       const quote = c.quoted_text
         ? '<div class="citation-quote">' + esc(c.quoted_text) + '</div>' : '';
       const url = c.url
-        ? '<div class="citation-url">' + esc(c.url) + '</div>' : '';
+        ? '<div class="citation-url"><a href="' + esc(c.url) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">' + esc(c.url) + '</a></div>' : '';
       const meta = [c.publication, c.date].filter(Boolean).join(' · ');
       const writeThis = c.quoted_text
         ? '' : '';
@@ -1016,8 +1078,19 @@
     copyText(formatCitations(ans.citations), btn, 'Citations');
   };
 
+  // Copy functions for new model_answer format
+  window.doCopyModelAnswer = function(btn) {
+    if (!currentData || !currentData.model_answer) return;
+    copyText(currentData.model_answer.answer_text || '', btn, 'Answer');
+  };
+
+  window.doCopyModelCitations = function(btn) {
+    if (!currentData || !currentData.model_answer) return;
+    copyText(formatCitations(currentData.model_answer.citations), btn, 'Citations');
+  };
+
   // ── RENDER CHATGPT PANEL ───────────────────────────────────────────────────
-  function renderChatGPT(chatgpt, answers) {
+  function renderChatGPT(chatgpt, answers, extraBrands) {
     const area = document.getElementById('chatgpt-area');
 
     if (!chatgpt || chatgpt.error) {
@@ -1031,12 +1104,16 @@
       return;
     }
 
-    // Collect all brand names from our answers for overlap detection
+    // Collect all brand names from our answers + brand bank for overlap detection
     var ourBrands = [];
     (answers || []).forEach(function(a) {
       ['brand', 'brand_vertical', 'brand_horizontal', 'brand_indian_global'].forEach(function(key) {
         if (a[key]) ourBrands.push(a[key].toLowerCase());
       });
+    });
+    // Also include brands from the new format's brand_bank
+    (extraBrands || []).forEach(function(b) {
+      if (b) ourBrands.push(b.toLowerCase());
     });
 
     const responseHTML =
@@ -1188,7 +1265,83 @@
           '<div class="spinner"></div>' +
           '<div class="spinner-label">Generating answers...</div>' +
         '</div>';
+    } else if (data.brand_bank || data.model_answer) {
+      // ── NEW FORMAT: explicit brand_bank + model_answer ──
+      let html = '';
+      const bb = data.brand_bank || [];
+
+      // ── BRAND BANK ──
+      if (bb.length > 0) {
+        html += '<div style="margin-bottom:20px;padding:16px;background:#f0fdf4;border:2px solid #22c55e;border-radius:8px;">' +
+          '<div style="font-weight:700;font-size:16px;color:#166534;margin-bottom:12px;">BRAND BANK \u2014 ' + bb.length + ' researched brands (pick your favorites)</div>';
+        bb.forEach(function(b, idx) {
+          var str = (b.strength || 'GOOD').toUpperCase();
+          var strColors = { STRONG: '#059669', GOOD: '#2563eb', MODERATE: '#d97706' };
+          var strBg = { STRONG: '#d1fae5', GOOD: '#dbeafe', MODERATE: '#fef3c7' };
+          var strColor = strColors[str] || '#6b7280';
+          var strBgColor = strBg[str] || '#f3f4f6';
+          var c = b.citation || {};
+          html += '<div style="background:white;border:1px solid #d1d5db;border-radius:8px;padding:14px;margin-bottom:10px;border-left:4px solid ' + strColor + ';">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+              '<div style="display:flex;align-items:center;gap:8px;">' +
+                '<strong style="font-size:15px;color:#1a1a2e;">[' + (idx+1) + '] ' + esc(b.brand || '') + '</strong>' +
+                (b.industry ? '<span style="font-size:11px;color:#6b7280;background:#f3f4f6;padding:2px 8px;border-radius:10px;">' + esc(b.industry) + '</span>' : '') +
+              '</div>' +
+              '<div style="display:flex;gap:6px;align-items:center;">' +
+                (c.url ? '<span data-check-url="' + esc(c.url) + '"><span style="color:#6b7280;font-size:10px;">Checking\u2026</span></span>' : '') +
+                '<span style="font-size:11px;font-weight:700;color:' + strColor + ';background:' + strBgColor + ';padding:2px 10px;border-radius:10px;">' + esc(str) + '</span>' +
+              '</div>' +
+            '</div>' +
+            (b.brand_concept ? '<div style="font-size:13px;color:#4c1d95;margin:8px 0;line-height:1.5;background:#f5f3ff;padding:8px 12px;border-radius:6px;border-left:3px solid #7c3aed;">' + esc(b.brand_concept) + '</div>' : '') +
+            (b.how_to_use ? '<div style="font-size:12px;color:#065f46;margin:6px 0;line-height:1.4;background:#ecfdf5;padding:6px 10px;border-radius:4px;">\u2192 ' + esc(b.how_to_use) + '</div>' : '') +
+            '<div style="font-size:12px;color:#374151;margin-top:6px;">' + esc(c.author || '') + (c.author ? ' \u2014 ' : '') + esc(c.title || '') + '</div>' +
+            '<div style="font-size:11px;color:#6b7280;margin-top:2px;">' + esc(c.publication || '') + (c.publication && c.date ? ' \u00b7 ' : '') + esc(c.date || '') + '</div>' +
+            (c.quoted_text ? '<div style="font-size:13px;font-style:italic;background:#fff8e1;border-left:4px solid #f59e0b;padding:8px 12px;margin-top:8px;color:#1a1a2e;font-weight:500;line-height:1.5;">\u201C' + esc(c.quoted_text) + '\u201D</div>' : '') +
+            (c.url ? '<div style="font-size:11px;margin-top:4px;word-break:break-all;display:flex;align-items:center;gap:4px;">' +
+              '<span data-url-tick="' + esc(c.url) + '" style="font-size:12px;color:#6b7280;">\u23F3</span>' +
+              '<a href="' + esc(c.url) + '" target="_blank" rel="noopener" style="color:#2563eb;text-decoration:none;" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">' + esc(c.url) + '</a></div>' : '') +
+          '</div>';
+        });
+        html += '</div>';
+      }
+
+      // ── MODEL ANSWER ──
+      var ma = data.model_answer;
+      if (ma) {
+        html += '<div style="margin-bottom:20px;">' +
+          '<div style="font-weight:700;font-size:14px;color:#374151;margin-bottom:8px;">MODEL ANSWER (copy or adapt with brands from bank above)</div>' +
+          '<div class="answer-card rank-BEST" style="border:2px solid #10b981;">' +
+            '<div class="card-header">' +
+              '<span class="rank-badge">TEMPLATE</span>' +
+              '<span class="card-brand">' + esc((ma.brands_used || []).join(' + ')) + '</span>' +
+              (ma.framework ? '<span class="card-framework">' + esc(ma.framework) + '</span>' : '') +
+            '</div>' +
+            (ma.framework_source ? '<div class="framework-ref" style="padding:4px 16px;font-size:12px;color:#666;background:#f0f7ff;border-left:3px solid #4a90d9;">' +
+              '<strong>Theory source:</strong> ' + esc(ma.framework_source.file || '') +
+              (ma.framework_source.section ? ' &rarr; ' + esc(ma.framework_source.section) : '') +
+              (ma.framework_source.cite_as ? '<br><em>Cite as: ' + esc(ma.framework_source.cite_as) + '</em>' : '') +
+              (ma.framework_source.page_hint ? '<br><span style="color:#888;">Hint: ' + esc(ma.framework_source.page_hint) + '</span>' : '') +
+            '</div>' : '') +
+            '<div class="card-body">' +
+              '<div class="answer-text" id="ans-text-model">' + esc(ma.answer_text || '') + '</div>' +
+            '</div>' +
+            renderCitations(ma.citations || []) +
+            '<div class="card-actions">' +
+              '<button class="btn btn-copy" onclick="doCopyModelAnswer(this)">Copy Answer</button>' +
+              (ma.citations && ma.citations.length > 0 ? '<button class="btn btn-cite" onclick="doCopyModelCitations(this)">Copy Citations</button>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }
+
+      if (!bb.length && !ma) {
+        html = '<div class="waiting-msg"><p>No answers yet.</p></div>';
+      }
+
+      answersArea.innerHTML = html;
+
     } else {
+      // ── OLD FORMAT: answers array (backward compat for saved files) ──
       const answers = data.answers || [];
       if (answers.length === 0) {
         answersArea.innerHTML =
@@ -1208,7 +1361,6 @@
             if (a.brand_indian_global) bp.push(a.brand_indian_global);
             var brandName = bp.length > 0 ? bp.join(' | ') : (a.option ? 'Option ' + a.option : '');
             var cites = a.citations || [];
-            // Handle case where citations might be nested or in a different structure
             if (!Array.isArray(cites)) cites = [];
             cites.forEach(function(c, ci) {
               if (!c || typeof c !== 'object') return;
@@ -1248,21 +1400,18 @@
               (b.brand_concept ? '<div style="font-size:12px;color:#7c3aed;margin-top:4px;font-weight:600;background:#f5f3ff;padding:3px 8px;border-radius:4px;display:inline-block;">' + esc(b.brand_concept) + '</div>' : '') +
               '<div style="font-size:11px;color:#6b7280;margin-top:2px;">' + esc(b.publication) + ' \u00b7 ' + esc(b.date) + '</div>' +
               (b.quote ? '<div style="font-size:13px;font-style:italic;background:#fff8e1;border-left:4px solid #f59e0b;padding:8px 12px;margin-top:8px;color:#1a1a2e;font-weight:500;line-height:1.5;">\u201C' + esc(b.quote) + '\u201D</div>' : '') +
-              '<div style="font-size:11px;color:#2563eb;margin-top:4px;word-break:break-all;">' + esc(b.url) + '</div>' +
+              '<div style="font-size:11px;color:#2563eb;margin-top:4px;word-break:break-all;"><a href="' + esc(b.url) + '" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">' + esc(b.url) + '</a></div>' +
             '</div>';
           });
           html += '</div>';
         }
 
-        // Answer options below
         html += '<div style="font-weight:700;font-size:14px;color:#374151;margin-bottom:8px;">PRE-WRITTEN OPTIONS (or mix-and-match from brands above)</div>';
         html += answers.map(function(a, i) {
           try { return renderAnswerCard(a, i); }
           catch(e) {
-            // Render as clean readable text instead of raw JSON
             var fallback = '<div class="answer-card" style="border:2px solid #6366f1;padding:16px;background:#f5f3ff;">';
             fallback += '<div style="font-weight:700;font-size:15px;color:#4f46e5;margin-bottom:12px;">Option ' + (i+1) + '</div>';
-            // Recursively render all key-value pairs as readable text
             function renderObj(obj, indent) {
               var out = '';
               for (var k in obj) {
@@ -1275,7 +1424,7 @@
                   out += renderObj(val, indent+1);
                 } else if (Array.isArray(val)) {
                   out += '<div style="margin-left:' + (indent*16) + 'px;margin-top:8px;"><strong style="color:#4f46e5;">' + esc(label) + ':</strong></div>';
-                  val.forEach(function(item, j) {
+                  val.forEach(function(item) {
                     if (typeof item === 'object') {
                       out += '<div style="margin-left:' + ((indent+1)*16) + 'px;margin-top:6px;border-left:3px solid #c7d2fe;padding-left:8px;">';
                       out += renderObj(item, indent+2);
@@ -1305,11 +1454,21 @@
       }
     }
 
-    // ChatGPT panel
-    try { renderChatGPT(data.chatgpt, data.answers); } catch(e) { console.error('ChatGPT render error:', e); }
+    // ChatGPT panel — collect brands from either new or old format for overlap detection
+    var chatgptBrands = [];
+    if (data.brand_bank) {
+      data.brand_bank.forEach(function(b) { if (b.brand) chatgptBrands.push(b.brand); });
+    }
+    if (data.model_answer && data.model_answer.brands_used) {
+      data.model_answer.brands_used.forEach(function(b) { chatgptBrands.push(b); });
+    }
+    try { renderChatGPT(data.chatgpt, data.answers || [], chatgptBrands); } catch(e) { console.error('ChatGPT render error:', e); }
 
-    // Recommender
+    // Recommender (legacy)
     try { renderRecommender(data); } catch(e) { console.error('Recommender render error:', e); }
+
+    // Verify all citation URLs via server proxy
+    try { verifyAllUrls(); } catch(e) { console.error('URL verify error:', e); }
   }
 
   // ── TABS (saved answers) ───────────────────────────────────────────────────
@@ -1320,7 +1479,30 @@
 
     // Load each saved file to get the real question_number for tab labels
     var fileTabs = '';
-    var jsonFiles = files.filter(f => f.endsWith('.json')).sort();
+    // Filter: only .json files matching q{N} pattern
+    var jsonFiles = files.filter(f => f.endsWith('.json') && /^q\d+/.test(f)).sort();
+    // Deduplicate by question number: for each Q, keep the BEST file.
+    // Priority: latest timestamp > plain q{N}.json > q{N}_partial.json
+    // This means partial files show ONLY if nothing better exists (live research view)
+    var bestPerQ = {};
+    jsonFiles.forEach(function(f) {
+      var isPartial = f.indexOf('_partial') !== -1;
+      var m = f.match(/^q(\d+)/);
+      if (!m) return;
+      var qNum = m[1];
+      // Score: partial = -1, plain q{N}.json = 0, timestamp = timestamp value
+      var score;
+      if (isPartial) {
+        score = -1;
+      } else {
+        var tsMatch = f.match(/^q\d+_(\d+)\.json$/);
+        score = tsMatch ? parseInt(tsMatch[1]) : 0;
+      }
+      if (!bestPerQ[qNum] || score > bestPerQ[qNum].score) {
+        bestPerQ[qNum] = { file: f, score: score, qNum: qNum };
+      }
+    });
+    jsonFiles = Object.values(bestPerQ).map(function(b) { return b.file; });
     var pending = jsonFiles.length;
     if (pending === 0) {
       tabsEl.innerHTML = currentTab;
@@ -1328,13 +1510,16 @@
     }
     var tabData = [];
     jsonFiles.forEach(function(f) {
+      // Extract Q number from filename as fallback (q3_123.json → 3)
+      var fnMatch = f.match(/^q(\d+)/);
+      var fnNum = fnMatch ? fnMatch[1] : '?';
       fetch('saved_answers/' + encodeURIComponent(f) + '?t=' + Date.now())
         .then(r => r.json())
         .then(d => {
-          tabData.push({ file: f, num: d.question_number || '?', question: (d.question || '').substring(0, 60) });
+          tabData.push({ file: f, num: d.question_number || fnNum, question: (d.question || '').substring(0, 60) });
         })
         .catch(() => {
-          tabData.push({ file: f, num: '?', question: f });
+          tabData.push({ file: f, num: fnNum, question: f });
         })
         .finally(() => {
           pending--;
@@ -1372,11 +1557,24 @@
       .then(files => {
         if (Array.isArray(files) && files.length > 0) {
           buildTabs(files);
+          // If currently viewing a partial file and a complete version now exists, auto-switch
+          if (loadedFile && loadedFile.indexOf('_partial') !== -1) {
+            var qMatch = loadedFile.match(/^q(\d+)/);
+            if (qMatch) {
+              var qNum = qMatch[1];
+              var complete = files.filter(f => f.match(new RegExp('^q' + qNum + '_\\d+\\.json$'))).sort().pop();
+              if (complete) {
+                loadedFile = complete;
+                fetch('saved_answers/' + encodeURIComponent(complete) + '?t=' + Date.now())
+                  .then(r => r.json())
+                  .then(data => render(data))
+                  .catch(() => {});
+              }
+            }
+          }
         }
       })
-      .catch(() => {
-        // saved_answers dir not available or not listing — ignore
-      });
+      .catch(() => {});
   }
 
   // ── REFRESH INDICATOR ─────────────────────────────────────────────────────
@@ -1417,11 +1615,17 @@
   setInterval(() => {
     if (loadedFile === 'latest') {
       loadResults();
+    } else if (loadedFile && loadedFile.indexOf('_partial') !== -1) {
+      // Also refresh partial files so user sees brands appear live
+      fetch('saved_answers/' + encodeURIComponent(loadedFile) + '?t=' + Date.now())
+        .then(r => r.json())
+        .then(data => render(data))
+        .catch(() => {});
     }
   }, 2000);
 
-  // Reload saved answers list every 30 seconds
-  setInterval(loadSavedAnswers, 30000);
+  // Reload saved answers list every 10 seconds (faster so new tabs appear sooner)
+  setInterval(loadSavedAnswers, 10000);
 </script>
 
 <!-- Troubleshooting Guide (always visible at bottom) -->

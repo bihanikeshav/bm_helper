@@ -36,7 +36,7 @@ Immediately write to results.json so the dashboard shows progress:
 ```python
 import json, os, time
 data = {"status": "generating", "question": "the question text", "question_number": N,
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "answers": [], "chatgpt": None, "recommender": None}
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "model_answer": None, "brand_bank": [], "chatgpt": None}
 tmp = "results.json.tmp"
 with open(tmp, "w", encoding="utf-8") as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
@@ -56,48 +56,33 @@ Launch both using the Agent tool with `run_in_background: true`:
 - The banned brands list (paste the list from exam_config.json directly — don't make the agent read the file)
 This way the agent doesn't waste tool calls reading files. It starts searching immediately.
 
-**ChatGPT Scraper:** Run via Bash (background): `python chatgpt_scraper.py "the question text"`
+**ChatGPT Scraper:** Run via Bash (background). Prepend context to the question so ChatGPT avoids banned brands and gives us useful overlap data:
+```bash
+python chatgpt_scraper.py "Answer this Brand Management exam question for an Indian B-school. Use real Indian market examples post-2000. Avoid these common brands: Apple, Tata, Nike, Samsung, Amul, Reliance, Flipkart, Amazon, Zomato, Patanjali, Maruti, ITC, HUL, P&G, Colgate, Pepsi, Coca-Cola, Adidas, Starbucks, McDonalds, KFC, Dominos, LG, Sony, Toyota, Bata, Raymond, Titan, Tanishq, Royal Enfield, Maggi, Paperboat, Asian Paints, Fevicol. Question: [the actual question text]"
+```
 If it fails, continue without it.
 
 Print: `Generating answers + checking ChatGPT... (you can ask me anything while this runs)`
 
-### Step 4: Write Partial Results
+### Step 4: Write Results
 
 **IMPORTANT: results.json must contain ONE question at a time with a FLAT structure. NEVER nest multiple questions under a `questions` key. The dashboard expects the flat format below. Each question is saved separately to `saved_answers/q{N}.json`. results.json always holds only the latest/active question.**
 
-Once both agents return, write to `results.json`:
+The generator now outputs `model_answer` + `brand_bank` (not multiple answer options). Once the generator agent returns, write to `results.json`:
 
 ```python
 import json, os, time
 
+# GENERATOR_OUTPUT has: {"model_answer": {...}, "brand_bank": [...]}
 results = {
-    "status": "answers_ready",
+    "status": "complete",
     "question": "<the question text>",
     "question_number": N,
     "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-    "answers": GENERATOR_ANSWERS,
+    "model_answer": GENERATOR_OUTPUT["model_answer"],
+    "brand_bank": GENERATOR_OUTPUT["brand_bank"],
     "chatgpt": CHATGPT_OUTPUT or {"response": "", "brands_mentioned": [], "error": "unavailable"},
-    "recommender": None
 }
-
-tmp = "results.json.tmp"
-with open(tmp, "w", encoding="utf-8") as f:
-    json.dump(results, f, indent=2, ensure_ascii=False)
-os.replace(tmp, "results.json")
-```
-
-The dashboard will immediately show the answers and ChatGPT panel.
-
-Print in terminal: `Answers ready — verifying citations...`
-
-### Step 5: Finalize Results
-
-The Generator already verifies URLs via WebFetch. No separate Recommender needed — it just adds latency.
-
-Set status to "complete" and save:
-
-```python
-results["status"] = "complete"
 
 tmp = "results.json.tmp"
 with open(tmp, "w", encoding="utf-8") as f:
@@ -105,6 +90,7 @@ with open(tmp, "w", encoding="utf-8") as f:
 os.replace(tmp, "results.json")
 
 # Also save to saved_answers
+# Save to saved_answers with timestamp (this is the COMPLETE version with chatgpt data)
 import shutil
 shutil.copy("results.json", f"saved_answers/q{results['question_number']}_{int(time.time())}.json")
 ```
@@ -115,7 +101,7 @@ Print in terminal: `Done! Check browser. (Type "more examples" or paste next que
 
 When the user types these phrases (not exam questions), handle them as commands:
 
-- **"more examples"** or **"different examples"**: Re-run the Generator with an added instruction: "Do NOT use these brands: [list all brands from previous answers]. Find completely different examples." Then re-run the Recommender. Keep the same ChatGPT response.
+- **"more examples"** or **"different examples"**: Re-run the Generator with an added instruction: "Do NOT use these brands: [list all brands from brand_bank]. Find completely different examples." Keep the same ChatGPT response.
 
 - **"different framework"** or **"try [framework name]"**: Re-run the Generator with the specified framework constraint. E.g., "Use Aaker's model instead of Kapferer's."
 
@@ -137,56 +123,20 @@ If user pastes all questions at once (or says "batch"):
 
 ## Agent Management Rules
 
-**NEVER do the agent's work in the main thread.** The main thread is ONLY for:
-- Orchestrating (spawning agents, writing results.json)
-- Talking to the user
-- Monitoring agents via partial file checks
-- If you do heavy work (WebSearch/WebFetch) in the main thread, it BLOCKS agent return notifications. This is the #1 cause of perceived hangs.
+**Main thread is for orchestrating, talking to the user, and monitoring agents.** Don't try to generate answers yourself — that's the agent's job. Avoid heavy WebSearch/WebFetch in the main thread while agents run (it can block agent notifications), but quick lookups to answer user questions are fine.
 
-**NEVER:**
-- Try to generate answers yourself in the main thread
-- Do WebSearch/WebFetch in the main thread while agents are running
+## Agent Monitoring
 
-## Agent Monitoring Protocol (CONCRETE STEPS)
+The generator agent writes ONE file at the end: `saved_answers/q{N}.json`. It focuses 100% on research and thinking — no file writes until the final save.
 
-The generator agent now writes incremental results to `saved_answers/q{N}_partial.json` after EACH completed option. The main thread monitors THIS file.
-
-**Timeline after launching generator agent:**
-
-**At 2 minutes:** Check if `saved_answers/q{N}_partial.json` exists.
-```bash
-ls -la saved_answers/q{N}_partial.json 2>/dev/null && python -c "import json; d=json.load(open('saved_answers/q{N}_partial.json')); print(f'Partial: {d.get(\"completed\",0)} options done')" || echo "No partial file yet"
-```
-- If partial file exists with 1+ options → agent is working, let it continue
-- If no partial file → check again at 3 minutes
-
-**At 4 minutes:** Check partial file again.
-```bash
-python -c "import json; d=json.load(open('saved_answers/q{N}_partial.json')); print(f'Options: {d.get(\"completed\",0)}')" 2>/dev/null || echo "STILL NO FILE"
-```
-- If partial has 2-3 options → agent is healthy, probably almost done
-- If partial has 1 option and hasn't changed since 2-minute check → agent is hung on WebFetch
-- If STILL no partial file → agent is dead
-
-**At 5 minutes (if agent appears stuck):**
-1. Read the partial file to get whatever options exist
-2. Launch a REPLACEMENT agent (foreground, NOT background) with:
-   - "Here are completed options from a previous attempt: [paste the partial JSON]. Generate 1-2 MORE options with DIFFERENT brands. DO NOT use WebFetch — use WebSearch snippets as quotes. Write final results to saved_answers/q{N}.json"
-3. The replacement agent skips WebFetch entirely to avoid the same hang
-4. STOP monitoring the old agent — if it returns later, ignore it
-
-**If agent completes on its own (background notification arrives):** Great — read its output, write to results.json. Ignore any partial file.
-
-**ONE replacement only.** If the replacement also hangs after 5 minutes, take whatever partial data exists and write it to results.json as-is. Two attempts is the max.
-
-**Key insight:** The generator now saves after EACH option. Even if it dies after Option 2, you have 2 good answers. The replacement only needs to add 1-2 more. This means worst case you get 2-3 options instead of zero.
+Save the agent_id. Starting at 3 minutes, check every 1 minute with `TaskOutput(task_id=agent_id, block=false, timeout=5000)`. If two consecutive checks show the agent stuck on the same WebFetch URL, launch one replacement (foreground, no WebFetch allowed) with whatever research the stuck agent produced. Max 2 attempts total.
 
 ## Progressive Dashboard Updates
 
 Write to results.json EVERY time new data arrives:
 - Status `"generating"` → when pipeline starts
 - Status `"answers_ready"` → when Generator finishes (dashboard shows answers immediately)
-- Status `"complete"` → final (no separate Recommender stage)
+- Status `"complete"` → final
 - In batch mode: update after EACH question completes
 
 ## Error Handling
@@ -211,7 +161,7 @@ The full banned list is in exam_config.json. But also watch for:
 - **Subsidiaries:** Reliance banned → Jio, Ajio, Reliance Retail ALL banned
 - **Sub-brands:** HUL banned → Dove, Surf Excel, Pond's ALL banned. P&G → Tide, Whisper. ITC → Sunfeast, Classmate, Bingo
 - **Category bans:** E-commerce/dotcom brands are risky (FirstCry rejected as "basically a dotcom", Udaan got zero)
-- When in doubt, flag as RISKY in the Recommender output
+- When in doubt, the generator should rate the brand as MODERATE with a note
 
 ## Question Number Tracking
 
@@ -257,7 +207,6 @@ Done! Check browser.
 ## Files Reference
 - `the kb_*.md files` — all Tier 0 course material (read once at start)
 - `prompts/generator.md` — Generator agent prompt
-- `prompts/recommender.md` — Recommender agent prompt
 - `exam_config.json` — banned brands, rules, patterns
 - `search_kb.py` — vector + keyword search
 - `chatgpt_scraper.py` — Playwright ChatGPT automation
