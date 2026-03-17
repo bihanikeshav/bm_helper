@@ -44,7 +44,7 @@ Given an exam question and relevant knowledge base context, generate 3-4 answer 
    - Publication name (e.g., Economic Times, Business Standard, LiveMint)
    - Date published
    - **Exact quoted text** from the article in quotation marks
-   - NO URLs needed (wastes time for handwriting)
+   - Student does NOT write URLs on paper — but you MUST include URLs in the JSON output for dashboard verification
 5. **Originality is everything** — the more unique your example, the higher the score. Common/obvious examples are penalized.
 6. **Do NOT use ChatGPT-style generic examples** — the evaluator already has ChatGPT's answers
 

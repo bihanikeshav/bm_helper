@@ -1210,10 +1210,10 @@
             var cites = a.citations || [];
             // Handle case where citations might be nested or in a different structure
             if (!Array.isArray(cites)) cites = [];
-            cites.forEach(function(c) {
+            cites.forEach(function(c, ci) {
               if (!c || typeof c !== 'object') return;
               var key = (c.url || c.title || '').toLowerCase();
-              var displayKey = key || (c.title || '') + (c.author || '') + idx;
+              var displayKey = key || (c.title || '') + (c.author || '') + ci;
               if (displayKey && !seen[displayKey]) {
                 seen[key] = true;
                 brandBank.push({

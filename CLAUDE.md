@@ -32,6 +32,17 @@ On a RESUMED session, these are already in context. Do NOT re-read them.
 Identify: topic, framework, marks, word limit, constraints, sub-parts (ALL must be addressed).
 Print: `Parsed: [topic] | [marks] marks | [number] sub-parts`
 
+Immediately write to results.json so the dashboard shows progress:
+```python
+import json, os, time
+data = {"status": "generating", "question": "the question text", "question_number": N,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "answers": [], "chatgpt": None, "recommender": None}
+tmp = "results.json.tmp"
+with open(tmp, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+os.replace(tmp, "results.json")
+```
+
 ### Step 2: Search Knowledge Base
 Run: `python search_kb.py "[topic keywords]"`
 Read the returned JSON. Hot = semantic matches. Cold = textbook keyword matches with page numbers.
@@ -79,35 +90,14 @@ The dashboard will immediately show the answers and ChatGPT panel.
 
 Print in terminal: `Answers ready — verifying citations...`
 
-### Step 5: Spawn Recommender Agent
+### Step 5: Finalize Results
 
-Read `prompts/recommender.md` for the system prompt. Pass it:
-- All answer options from the Generator
-- ChatGPT's response (if available)
-- The question text
+The Generator already verifies URLs via WebFetch. No separate Recommender needed — it just adds latency.
 
-The Recommender will verify URLs, check quotes, validate against banned brands, and rank answers.
-
-### Step 6: Update Results with Rankings
-
-Merge the Recommender's output into results.json:
-- Update each answer with rank, rank_reason, issues, url_verified, quote_verified
-- Add the recommender verdict and checks
-- Change status to "complete"
-- Save a copy to `saved_answers/q{N}_{timestamp}.json`
+Set status to "complete" and save:
 
 ```python
 results["status"] = "complete"
-results["recommender"] = RECOMMENDER_OUTPUT
-for update in recommender_output["answer_updates"]:
-    idx = update["answer_index"]
-    results["answers"][idx].update({
-        "rank": update["rank"],
-        "rank_reason": update["rank_reason"],
-        "issues": update["issues"],
-        "url_verified": update["url_verified"],
-        "quote_verified": update["quote_verified"]
-    })
 
 tmp = "results.json.tmp"
 with open(tmp, "w", encoding="utf-8") as f:
@@ -182,7 +172,7 @@ Write to results.json EVERY time new data arrives:
 
 ## Error Handling
 
-- **search_kb.py fails:** Use knowledge_bundle.md context directly (already in your context)
+- **search_kb.py fails:** Use the kb_*.md files context directly (already in your context)
 - **ChatGPT scraper fails:** Set chatgpt to `{"response": "", "brands_mentioned": [], "error": "unavailable"}`
 - **Generator invalid JSON:** Try in order: (1) strip markdown fences and re-parse, (2) extract JSON between first { and last }, (3) extract answer_text fields via regex, (4) re-run once with "output ONLY valid JSON" instruction
 - **Recommender fails:** Show answers without rankings, note "Verification pending"
@@ -210,7 +200,7 @@ Infer the question number from what the user types. She will prefix questions wi
 
 ## Example Sourcing Rules
 
-**CRITICAL: Class notes, slides, and professor's articles contain examples discussed IN CLASS. ALL class examples are BANNED. Use knowledge_bundle.md ONLY for theory/frameworks. The Generator must find FRESH examples via WebSearch — never reuse examples from course material.**
+**CRITICAL: Class notes, slides, and professor's articles contain examples discussed IN CLASS. ALL class examples are BANNED. Use the kb_*.md files ONLY for theory/frameworks. The Generator must find FRESH examples via WebSearch — never reuse examples from course material.**
 
 The Generator finds FRESH examples from TWO sources:
 1. **WebSearch** (primary) — find unique Indian market examples from business press
@@ -246,7 +236,7 @@ Done! Check browser.
 ```
 
 ## Files Reference
-- `knowledge_bundle.md` — all Tier 0 course material (read once at start)
+- `the kb_*.md files` — all Tier 0 course material (read once at start)
 - `prompts/generator.md` — Generator agent prompt
 - `prompts/recommender.md` — Recommender agent prompt
 - `exam_config.json` — banned brands, rules, patterns
