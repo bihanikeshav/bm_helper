@@ -193,7 +193,7 @@
 
   /* ── LEFT PANEL ── */
   #left-panel {
-    width: 72%;
+    width: 100%;
     display: flex;
     flex-direction: column;
     border-right: 2px solid var(--border);
@@ -811,8 +811,8 @@
     </div>
   </div>
 
-  <!-- RIGHT PANEL -->
-  <div id="right-panel">
+  <!-- RIGHT PANEL (ChatGPT) - hidden for now -->
+  <div id="right-panel" style="display:none;">
     <div id="right-header">
       <div class="panel-title danger">ChatGPT Said (AVOID THESE)</div>
     </div>
@@ -1549,7 +1549,7 @@
   };
 
   function loadSavedAnswers() {
-    fetch('saved_answers/?t=' + Date.now())
+    fetch('saved_answers/index.json?t=' + Date.now())
       .then(r => {
         if (!r.ok) throw new Error('not ok');
         return r.json();
