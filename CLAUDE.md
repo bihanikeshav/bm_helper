@@ -150,25 +150,24 @@ If user pastes all questions at once (or says "batch"):
 **NEVER do the agent's work in the main thread.** The main thread is ONLY for:
 - Orchestrating (spawning agents, writing results.json)
 - Talking to the user
-- If you do work in the main thread, it BLOCKS agent return notifications. This is the #1 cause of perceived hangs.
+- Monitoring agents (checking every 1 minute)
+- If you do heavy work (WebSearch/WebFetch) in the main thread, it BLOCKS agent return notifications. This is the #1 cause of perceived hangs.
 
 **NEVER:**
-- Launch a "simpler" replacement agent while the first is still running
 - Try to generate answers yourself in the main thread
-- Launch multiple agents for the same question
-- Get impatient and intervene before 8 minutes
+- Do WebSearch/WebFetch in the main thread while agents are running
 
-**Agent timing expectations:**
-- Normal: 3-7 minutes per question (searching 8-10 brands, fetching articles)
-- Slow but working: 7-10 minutes (many WebFetch calls, some slow sites)
-- Stale: 10+ minutes with no new output
+**Agent health monitoring — check every 1 minute:**
+After launching a background agent, check its output file every ~1 minute:
 
-**Stale detection — only after 10 minutes:**
-1. **Before 10 min:** Do nothing. Tell user "Still working on Q{N}..." if they ask.
-2. **At 10 min:** Check the agent's output file for partial results.
-   - Has partial data (some answers, some citations) → USE IT. Write what's there to results.json. Launch a small follow-up agent ONLY for the missing parts.
-   - Completely empty → Agent is dead. Relaunch with the same prompt.
-3. **Pass partial data to follow-up agent:** "Here are the answers so far: [partial data]. Please complete the remaining options and add URLs where missing."
+1. **Agent is progressing** (new output since last check) → healthy, let it continue
+2. **Agent is stuck on the same WebFetch for 2+ checks** (output shows "Fetching..." with no new content) → the WebFetch is hung on a slow/paywalled site. This is a COMMON bug.
+   - Read the agent's output to extract whatever answers/data it has produced so far
+   - Launch a NEW replacement agent with: "Here is partial data from a previous attempt: [paste the partial answers]. Complete the remaining options. SKIP these URLs that hung: [list the stuck URLs]. Use different sources."
+   - The old agent will eventually timeout on its own
+3. **Agent output is completely empty after 3 minutes** → agent is dead, relaunch with the same prompt
+
+**Key insight:** The most common failure is WebFetch hanging on a single URL. The agent has usually found 2-3 good answers before it gets stuck on one bad fetch. Don't waste those — extract them and pass to a replacement agent.
 
 ## Progressive Dashboard Updates
 
