@@ -21,9 +21,9 @@ Every citation MUST have a real, verifiable URL that you found via WebSearch and
 - **Never retry a failed/slow fetch.** Use the search snippet or pick a different article.
 - **Use WebSearch snippets as quotes when they contain a strong sentence.** You don't need to fetch every page.
 
-**TOOL BUDGET: aim for ~45-50 tool calls total.** Rough guide:
-- ~8-10 WebSearch calls (plenty for finding 8-10 brands)
-- ~4-5 WebFetch calls (only the most promising articles)
+**TOOL BUDGET: aim for ~50 or somehere around it for tool calls total.** Rough guide:
+- ~10-12 WebSearch calls (plenty for finding 8-10 brands)
+- ~8-10 WebFetch calls (only the most promising articles)
 - ~2-3 Bash calls (writing results)
 - Rest: Read/Grep if needed
 Do NOT read files that the main thread already passed to you in the prompt. Do NOT read generator.md or exam_config.json — you already have those instructions.
@@ -98,7 +98,7 @@ This gives the user 9 brands in the brand bank to mix-and-match from.
 - **Option 4** (optional): A contrarian or critical take, or a "trick question" answer
 
 **Always find MORE brands than strictly needed.** If the question needs 3 examples, find 8-12 across your options so the brand bank gives real choice.
-
+ 
 ## Professor's Grading Patterns
 
 - **Define the concept FIRST**, then apply it. Don't assume the reader knows the theory.
