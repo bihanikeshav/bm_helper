@@ -11,3 +11,4 @@ results.json.tmp
 Thumbs.db
 
 # PDFs tracked via Git LFS (see .gitattributes)
+.env

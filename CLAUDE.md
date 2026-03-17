@@ -43,7 +43,7 @@ Launch both using the Agent tool with `run_in_background: true`:
 - The exam question
 - Relevant knowledge base chunks (from Step 2 + relevant sections already in your context)
 - The banned brands list from exam_config.json
-- **Tell the agent: use WebSearch to find real articles with URLs. Max 3 searches, max 3 fetches. Speed over perfection — 3 minutes max.**
+- **Tell the agent: use WebSearch to find real articles with URLs. Search as many brands as needed. Skip slow/paywalled sites when fetching.**
 
 **ChatGPT Scraper:** Run via Bash (background): `python chatgpt_scraper.py "the question text"`
 If it fails, continue without it.
@@ -145,21 +145,30 @@ If user pastes all questions at once (or says "batch"):
 5. Main thread merges completed results into results.json ONE AT A TIME (no race condition)
 6. User can interact while agents run in background ("what's the theory behind Q3?")
 
-## Agent Patience Rules
+## Agent Management Rules
 
-**DO NOT get impatient.** Agents take 3-5 minutes typically. This is NORMAL.
+**NEVER do the agent's work in the main thread.** The main thread is ONLY for:
+- Orchestrating (spawning agents, writing results.json)
+- Talking to the user
+- If you do work in the main thread, it BLOCKS agent return notifications. This is the #1 cause of perceived hangs.
 
-**DO NOT:**
+**NEVER:**
 - Launch a "simpler" replacement agent while the first is still running
-- Try to do the agent's job yourself in the main thread
+- Try to generate answers yourself in the main thread
 - Launch multiple agents for the same question
-- Relaunch unless you are CERTAIN the agent is dead (see below)
+- Get impatient and intervene before 8 minutes
 
-**Stale detection — only after 8 minutes:**
-1. **Before 8 min:** Do nothing. Let the agent work. Tell the user "Still working, should be done soon."
-2. **At 8 min:** Check the agent's output. If it has partial results, USE THEM as-is. Write to results.json with whatever is there.
-3. **Only relaunch if:** output is completely empty after 8 minutes AND the agent has returned no notification. Then relaunch with a simplified prompt: "Find 2 brands only, max 2 WebSearch calls, no WebFetch."
-4. **Never run the same work in the main thread.** The main thread is for orchestration and talking to the user, not for generating answers.
+**Agent timing expectations:**
+- Normal: 3-7 minutes per question (searching 8-10 brands, fetching articles)
+- Slow but working: 7-10 minutes (many WebFetch calls, some slow sites)
+- Stale: 10+ minutes with no new output
+
+**Stale detection — only after 10 minutes:**
+1. **Before 10 min:** Do nothing. Tell user "Still working on Q{N}..." if they ask.
+2. **At 10 min:** Check the agent's output file for partial results.
+   - Has partial data (some answers, some citations) → USE IT. Write what's there to results.json. Launch a small follow-up agent ONLY for the missing parts.
+   - Completely empty → Agent is dead. Relaunch with the same prompt.
+3. **Pass partial data to follow-up agent:** "Here are the answers so far: [partial data]. Please complete the remaining options and add URLs where missing."
 
 ## Progressive Dashboard Updates
 
