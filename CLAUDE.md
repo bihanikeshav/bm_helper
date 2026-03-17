@@ -164,7 +164,8 @@ After launching a background agent, check its output file every ~1 minute:
 2. **Agent is stuck on the same WebFetch for 2+ checks** (output shows "Fetching..." with no new content) → the WebFetch is hung on a slow/paywalled site. This is a COMMON bug.
    - Read the agent's output to extract whatever answers/data it has produced so far
    - Launch a NEW replacement agent with: "Here is partial data from a previous attempt: [paste the partial answers]. Complete the remaining options. SKIP these URLs that hung: [list the stuck URLs]. Use different sources."
-   - The old agent will eventually timeout on its own
+   - The old agent will eventually timeout on its own — you cannot kill it
+   - If the old agent returns AFTER the replacement is done, IGNORE its output (don't overwrite the replacement's results)
 3. **Agent output is completely empty after 3 minutes** → agent is dead, relaunch with the same prompt
 
 **Key insight:** The most common failure is WebFetch hanging on a single URL. The agent has usually found 2-3 good answers before it gets stuck on one bad fetch. Don't waste those — extract them and pass to a replacement agent.
