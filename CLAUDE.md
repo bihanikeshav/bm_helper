@@ -170,6 +170,8 @@ After launching a background agent, check its output file every ~1 minute:
 
 **Key insight:** The most common failure is WebFetch hanging on a single URL. The agent has usually found 2-3 good answers before it gets stuck on one bad fetch. Don't waste those — extract them and pass to a replacement agent.
 
+**ONE replacement only:** Once you launch a replacement agent for a question, STOP monitoring the old agent. Do NOT launch a second replacement. If the replacement also gets stuck after 5 minutes, use whatever partial data exists from BOTH agents combined and write it to results.json as-is. Two attempts is the max — after that, go with what you have.
+
 ## Progressive Dashboard Updates
 
 Write to results.json EVERY time new data arrives:
